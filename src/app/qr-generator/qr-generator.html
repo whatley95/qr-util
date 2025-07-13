@@ -1,0 +1,177 @@
+<div class="qr-generator">
+  <h1>Generate QR Code</h1>
+  <p class="description">Select a QR code type and fill in the details to generate your code.</p>
+
+  <div class="content-container">
+    <div class="settings-panel">
+      <form [formGroup]="qrForm" (ngSubmit)="generateQRCode()">
+        <div class="form-group">
+          <label for="qrType">QR Code Type:</label>
+          <select id="qrType" formControlName="qrType" (change)="onTypeChange()">
+            <option value="url">URL</option>
+            <option value="text">Text</option>
+            <option value="email">Email</option>
+            <option value="phone">Phone Number</option>
+            <option value="sms">SMS</option>
+            <option value="wifi">WiFi</option>
+            <option value="vcard">Contact (vCard)</option>
+          </select>
+        </div>
+
+        <!-- Dynamic form fields based on selected type -->
+        <ng-container *ngIf="qrForm.get('qrType')?.value === 'url'">
+          <div class="form-group">
+            <label for="url">URL:</label>
+            <input type="url" id="url" formControlName="url" placeholder="https://example.com">
+            <div class="error" *ngIf="isFieldInvalid('url')">Please enter a valid URL</div>
+          </div>
+        </ng-container>
+
+        <ng-container *ngIf="qrForm.get('qrType')?.value === 'text'">
+          <div class="form-group">
+            <label for="text">Text:</label>
+            <textarea id="text" formControlName="text" placeholder="Enter your text here" rows="3"></textarea>
+            <div class="error" *ngIf="isFieldInvalid('text')">Please enter some text</div>
+          </div>
+        </ng-container>
+
+        <ng-container *ngIf="qrForm.get('qrType')?.value === 'email'">
+          <div class="form-group">
+            <label for="email">Email Address:</label>
+            <input type="email" id="email" formControlName="email" placeholder="user@example.com">
+            <div class="error" *ngIf="isFieldInvalid('email')">Please enter a valid email address</div>
+          </div>
+          <div class="form-group">
+            <label for="emailSubject">Subject (optional):</label>
+            <input type="text" id="emailSubject" formControlName="emailSubject" placeholder="Email subject">
+          </div>
+          <div class="form-group">
+            <label for="emailBody">Body (optional):</label>
+            <textarea id="emailBody" formControlName="emailBody" placeholder="Email content" rows="3"></textarea>
+          </div>
+        </ng-container>
+
+        <ng-container *ngIf="qrForm.get('qrType')?.value === 'phone'">
+          <div class="form-group">
+            <label for="phone">Phone Number:</label>
+            <input type="tel" id="phone" formControlName="phone" placeholder="+1234567890">
+            <div class="error" *ngIf="isFieldInvalid('phone')">Please enter a valid phone number</div>
+          </div>
+        </ng-container>
+
+        <ng-container *ngIf="qrForm.get('qrType')?.value === 'sms'">
+          <div class="form-group">
+            <label for="smsNumber">Phone Number:</label>
+            <input type="tel" id="smsNumber" formControlName="smsNumber" placeholder="+1234567890">
+            <div class="error" *ngIf="isFieldInvalid('smsNumber')">Please enter a valid phone number</div>
+          </div>
+          <div class="form-group">
+            <label for="smsMessage">Message (optional):</label>
+            <textarea id="smsMessage" formControlName="smsMessage" placeholder="SMS content" rows="3"></textarea>
+          </div>
+        </ng-container>
+
+        <ng-container *ngIf="qrForm.get('qrType')?.value === 'wifi'">
+          <div class="form-group">
+            <label for="ssid">Network Name (SSID):</label>
+            <input type="text" id="ssid" formControlName="ssid" placeholder="WiFi Network Name">
+            <div class="error" *ngIf="isFieldInvalid('ssid')">Please enter a network name</div>
+          </div>
+          <div class="form-group">
+            <label for="encryption">Encryption:</label>
+            <select id="encryption" formControlName="encryption">
+              <option value="WPA">WPA/WPA2</option>
+              <option value="WEP">WEP</option>
+              <option value="nopass">No Encryption</option>
+            </select>
+          </div>
+          <div class="form-group" *ngIf="qrForm.get('encryption')?.value !== 'nopass'">
+            <label for="password">Password:</label>
+            <input type="password" id="password" formControlName="password" placeholder="WiFi Password">
+            <div class="error" *ngIf="isFieldInvalid('password')">Please enter a password</div>
+          </div>
+          <div class="form-group">
+            <label class="checkbox-label">
+              <input type="checkbox" formControlName="hidden">
+              Hidden Network
+            </label>
+          </div>
+        </ng-container>
+
+        <ng-container *ngIf="qrForm.get('qrType')?.value === 'vcard'">
+          <div class="form-group">
+            <label for="firstName">First Name:</label>
+            <input type="text" id="firstName" formControlName="firstName" placeholder="First Name">
+            <div class="error" *ngIf="isFieldInvalid('firstName')">Please enter a first name</div>
+          </div>
+          <div class="form-group">
+            <label for="lastName">Last Name:</label>
+            <input type="text" id="lastName" formControlName="lastName" placeholder="Last Name">
+            <div class="error" *ngIf="isFieldInvalid('lastName')">Please enter a last name</div>
+          </div>
+          <div class="form-group">
+            <label for="contactEmail">Email:</label>
+            <input type="email" id="contactEmail" formControlName="contactEmail" placeholder="user@example.com">
+          </div>
+          <div class="form-group">
+            <label for="contactPhone">Phone:</label>
+            <input type="tel" id="contactPhone" formControlName="contactPhone" placeholder="+1234567890">
+          </div>
+          <div class="form-group">
+            <label for="organization">Organization (optional):</label>
+            <input type="text" id="organization" formControlName="organization" placeholder="Company Name">
+          </div>
+          <div class="form-group">
+            <label for="title">Job Title (optional):</label>
+            <input type="text" id="title" formControlName="title" placeholder="Job Title">
+          </div>
+          <div class="form-group">
+            <label for="url">Website (optional):</label>
+            <input type="url" id="contactUrl" formControlName="contactUrl" placeholder="https://example.com">
+          </div>
+          <div class="form-group">
+            <label for="address">Address (optional):</label>
+            <input type="text" id="address" formControlName="address" placeholder="Street Address">
+          </div>
+        </ng-container>
+
+        <div class="form-group">
+          <label for="errorCorrection">Error Correction:</label>
+          <select id="errorCorrection" formControlName="errorCorrection">
+            <option value="L">Low (7%)</option>
+            <option value="M">Medium (15%)</option>
+            <option value="Q">Quartile (25%)</option>
+            <option value="H">High (30%)</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="size">Size:</label>
+          <input type="range" id="size" formControlName="size" min="100" max="400" step="10">
+          <span class="range-value">{{ qrForm.get('size')?.value }}px</span>
+        </div>
+
+        <button type="submit" [disabled]="qrForm.invalid || isGenerating">
+          {{ isGenerating ? 'Generating...' : 'Generate QR Code' }}
+        </button>
+      </form>
+    </div>
+
+    <div class="preview-panel" *ngIf="qrDataString">
+      <div class="qr-display">
+        <div class="qr-code">
+          <qrcode
+            [qrdata]="qrDataString"
+            [width]="qrForm.get('size')?.value"
+            [errorCorrectionLevel]="qrForm.get('errorCorrection')?.value"
+          ></qrcode>
+        </div>
+        
+        <div class="actions">
+          <button (click)="downloadQRCode('png')" class="btn-download">Download PNG</button>
+          <button (click)="downloadQRCode('svg')" class="btn-download">Download SVG</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
