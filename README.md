@@ -34,6 +34,29 @@ A modern, feature-rich QR code generator and scanner utility built with Angular.
 
 This project was generated using [Angular CLI](https://github.com/angular/angular-cli) version 20.1.0.
 
+## Deployment
+
+### Cloudflare Pages
+This application can be easily deployed to Cloudflare Pages:
+
+1. **Manual Deployment**:
+   - Build the application: `npm run build -- --configuration production`
+   - Upload the contents of `dist/qr-util/browser/` to Cloudflare Pages via the dashboard
+
+2. **Automatic Deployment**:
+   - Connect your GitHub repository to Cloudflare Pages
+   - Configure the build settings:
+     - Build command: `npm run build -- --configuration production`
+     - Build output directory: `dist/qr-util/browser`
+     - Environment variables: Set `NODE_VERSION` to `18` or higher
+
+3. **Custom Domain**:
+   - After deployment, you can configure a custom domain in the Cloudflare Pages settings
+
+4. **Configuration Files**:
+   - This repo includes `_routes.json` which configures Cloudflare Pages to handle Angular's client-side routing
+   - The configuration also sets optimal caching headers for static assets
+
 ## Development server
 
 To start a local development server, run:
@@ -60,6 +83,8 @@ ng generate --help
 
 ## Building
 
+### Local Build
+
 To build the project run:
 
 ```bash
@@ -67,6 +92,29 @@ ng build
 ```
 
 This will compile your project and store the build artifacts in the `dist/` directory. By default, the production build optimizes your application for performance and speed.
+
+### Building for Deployment to Cloudflare Pages
+
+To build the project for manual deployment to Cloudflare Pages:
+
+1. Create a production build:
+
+```bash
+npm run build -- --configuration production
+```
+
+2. The build output will be in the `dist/qr-util/browser/` directory.
+
+3. For manual deployment to Cloudflare Pages:
+   - Log in to your Cloudflare dashboard
+   - Navigate to Pages
+   - Create a new project (if needed)
+   - Upload the contents of the `dist/qr-util/browser/` directory
+
+Alternatively, you can set up automatic deployments with these settings:
+- **Build command:** `npm run build -- --configuration production`
+- **Build output directory:** `dist/qr-util/browser`
+- **Root directory:** `/`
 
 ## Running unit tests
 
