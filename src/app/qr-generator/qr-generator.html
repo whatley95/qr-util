@@ -190,6 +190,43 @@
                 </div>
               </div>
             </div>
+
+            <div class="logo-section">
+              <h4>🖼️ Add Logo or Image</h4>
+              <p class="info-text">
+                Adding a logo increases QR code recognition error tolerance.<br>
+                Error correction will be set to high for better readability.
+              </p>
+
+              <div class="form-group">
+                <label class="checkbox-label">
+                  <input type="checkbox" formControlName="addLogo" [disabled]="!logoFile">
+                  Include Logo in QR Code
+                </label>
+              </div>
+
+              <div class="logo-upload-area" [class.has-logo]="logoFile !== null">
+                <div class="logo-preview" *ngIf="logoURL">
+                  <img [src]="logoURL" alt="Logo preview">
+                  <button type="button" class="remove-logo-btn" (click)="clearLogo()">✖</button>
+                </div>
+                
+                <div class="logo-controls" *ngIf="!logoURL">
+                  <label for="logoUpload" class="upload-btn">
+                    Select Logo
+                    <input type="file" id="logoUpload" accept="image/*" (change)="onLogoSelected($event)" class="visually-hidden">
+                  </label>
+                </div>
+              </div>
+              
+              <div class="form-group" *ngIf="logoFile">
+                <label for="logoSize">Logo Size:</label>
+                <div class="range-wrapper">
+                  <input type="range" id="logoSize" formControlName="logoSize" min="30" max="120" step="5" class="range-slider">
+                  <span class="range-value">{{ qrForm.get('logoSize')?.value }}px</span>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -251,15 +288,18 @@
         </div>
         
         <div class="qr-code-container">
-          <qrcode
+          <app-qr-with-logo
             [qrdata]="qrDataString"
-            [width]="qrForm.get('size')?.value"
+            [size]="qrForm.get('size')?.value"
             [colorDark]="qrForm.get('colorDark')?.value"
             [colorLight]="qrForm.get('colorLight')?.value"
             [margin]="qrForm.get('margin')?.value"
             [errorCorrectionLevel]="qrForm.get('errorCorrection')?.value"
+            [logoUrl]="logoURL"
+            [showLogo]="qrForm.get('addLogo')?.value === true && logoURL !== null"
+            [logoSize]="qrForm.get('logoSize')?.value"
             class="qr-code-element">
-          </qrcode>
+          </app-qr-with-logo>
         </div>
         
         <div class="download-section">

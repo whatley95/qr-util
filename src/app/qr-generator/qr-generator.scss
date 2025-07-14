@@ -175,7 +175,8 @@ $gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
       justify-content: center;
       margin-bottom: 2rem;
       
-      .qr-code-element {
+      .qr-code-wrapper {
+        position: relative;
         border-radius: 12px;
         overflow: hidden;
         box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
@@ -183,6 +184,12 @@ $gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
         
         &:hover {
           transform: scale(1.02);
+        }
+        
+        .qr-code-element {
+          display: block;
+          border-radius: 12px;
+          overflow: hidden;
         }
       }
     }
@@ -463,6 +470,123 @@ $gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
       font-family: 'Consolas', 'Monaco', monospace;
       text-transform: uppercase;
       letter-spacing: 0.5px;
+    }
+  }
+}
+
+.logo-section {
+  margin-top: 2rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid #f1f3f4;
+  
+  h4 {
+    color: $primary;
+    margin-bottom: 0.75rem;
+    font-size: 1.1rem;
+  }
+  
+  .info-text {
+    font-size: 0.85rem;
+    color: $gray;
+    margin-bottom: 1rem;
+    padding: 0.75rem;
+    background: #f8f9fa;
+    border-left: 3px solid $primary;
+    border-radius: 0 8px 8px 0;
+  }
+  
+  .logo-upload-area {
+    margin: 1.25rem 0;
+    min-height: 120px;
+    border: 2px dashed $light-gray;
+    border-radius: 12px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 1rem;
+    transition: all 0.3s ease;
+    
+    &.has-logo {
+      border-style: solid;
+      border-color: $primary;
+      background-color: rgba($primary, 0.03);
+    }
+    
+    &:hover {
+      border-color: $primary;
+      background-color: rgba($primary, 0.03);
+    }
+    
+    .logo-preview {
+      position: relative;
+      
+      img {
+        max-width: 100%;
+        max-height: 120px;
+        border-radius: 8px;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+      }
+      
+      .remove-logo-btn {
+        position: absolute;
+        top: -10px;
+        right: -10px;
+        width: 24px;
+        height: 24px;
+        border-radius: 50%;
+        background: #f44336;
+        color: white;
+        border: none;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        font-size: 12px;
+        padding: 0;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+        
+        &:hover {
+          background: #d32f2f;
+          transform: scale(1.1);
+        }
+      }
+    }
+    
+    .logo-controls {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      
+      .upload-btn {
+        background: $white;
+        color: $primary;
+        border: 2px solid $primary;
+        border-radius: 30px;
+        padding: 0.75rem 2rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        display: inline-block;
+        
+        &:hover {
+          background: $primary;
+          color: $white;
+          transform: translateY(-2px);
+          box-shadow: 0 4px 15px rgba($primary, 0.3);
+        }
+      }
+      
+      .visually-hidden {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        padding: 0;
+        margin: -1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        white-space: nowrap;
+        border-width: 0;
+      }
     }
   }
 }

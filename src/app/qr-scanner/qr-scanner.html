@@ -85,8 +85,9 @@
               <img #previewImage [src]="previewImageUrl" alt="QR code preview" (load)="onPreviewLoaded()">
             </div>
 
+            <!-- Button now only for rescanning if needed -->
             <button (click)="scanSelectedImage()" class="scan-btn">
-              Scan QR Code
+              Re-Scan QR Code
             </button>
           </div>
         </div>

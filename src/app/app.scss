@@ -125,6 +125,18 @@ footer {
   position: relative;
   overflow: hidden;
   
+  a {
+    color: #1a73e8;
+    text-decoration: none;
+    font-weight: 500;
+    transition: color 0.2s ease, text-decoration 0.2s ease;
+    
+    &:hover {
+      color: #0d47a1;
+      text-decoration: underline;
+    }
+  }
+  
   &::before {
     content: '';
     position: absolute;

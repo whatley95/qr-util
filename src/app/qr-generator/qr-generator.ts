@@ -1,15 +1,15 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
-// Import QRCodeComponent directly
-import { QRCodeComponent } from 'angularx-qrcode';
 // Fix import path
 import { QrCodeService } from './../services/qr-code.service';
+// Import the QR with logo component
+import { QrWithLogoComponent } from './qr-with-logo.component';
 
 @Component({
   selector: 'app-qr-generator',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, QRCodeComponent],
+  imports: [CommonModule, ReactiveFormsModule, QrWithLogoComponent],
   templateUrl: './qr-generator.html',
   styleUrl: './qr-generator.scss'
 })
@@ -17,6 +17,10 @@ export class QrGenerator implements OnInit {
   qrForm!: FormGroup;
   qrDataString: string = '';
   isGenerating: boolean = false;
+  logoFile: File | null = null;
+  logoURL: string | null = null;
+  
+  @ViewChild(QrWithLogoComponent) qrWithLogoComponent!: QrWithLogoComponent;
   
   // Color presets for quick selection
   colorPresets = [
@@ -94,12 +98,89 @@ export class QrGenerator implements OnInit {
       colorDark: ['#000000'],
       colorLight: ['#ffffff'],
       margin: [4],
+      // Image/Logo options
+      addLogo: [false],
+      logoSize: [60], // logo size in pixels
       // Common options
       errorCorrection: ['M'],
       size: [200]
     });
 
     this.onTypeChange();
+  }
+  
+  // Handle logo file selection
+  onLogoSelected(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    if (input.files && input.files[0]) {
+      const file = input.files[0];
+      
+      // Check if file is an image
+      if (!file.type.startsWith('image/')) {
+        alert('Please select an image file');
+        return;
+      }
+      
+      // Check image size - if too large, resize it
+      if (file.size > 500000) { // 500KB
+        alert('For best results, use an image smaller than 500KB.');
+      }
+      
+      this.logoFile = file;
+      
+      // Clear previous URL if exists
+      if (this.logoURL) {
+        URL.revokeObjectURL(this.logoURL);
+      }
+      
+      // Create preview URL
+      this.logoURL = URL.createObjectURL(file);
+      
+      // When adding logo, automatically adjust settings for better readability
+      
+      // Always set error correction to high when using a logo
+      this.qrForm.get('errorCorrection')?.setValue('H');
+      this.qrForm.get('addLogo')?.setValue(true);
+      
+      // Ensure logo size is reasonable based on QR code size
+      const qrSize = this.qrForm.get('size')?.value || 200;
+      const maxLogoSize = Math.round(qrSize * 0.2); // 20% of QR code size
+      const currentLogoSize = this.qrForm.get('logoSize')?.value || 60;
+      
+      if (currentLogoSize > maxLogoSize) {
+        this.qrForm.get('logoSize')?.setValue(maxLogoSize);
+      }
+      
+      // If QR code is small, increase its size to accommodate the logo better
+      if (qrSize < 200) {
+        this.qrForm.get('size')?.setValue(Math.max(qrSize, 200));
+      }
+      
+      // Re-generate QR code if it already exists
+      if (this.qrDataString) {
+        this.generateQRCode();
+      }
+    }
+  }
+  
+  // Clear logo selection
+  clearLogo(): void {
+    this.logoFile = null;
+    if (this.logoURL) {
+      URL.revokeObjectURL(this.logoURL);
+      this.logoURL = null;
+    }
+    this.qrForm.get('addLogo')?.setValue(false);
+    
+    // Reset error correction to default if no logo
+    if (this.qrForm.get('errorCorrection')?.value === 'H') {
+      this.qrForm.get('errorCorrection')?.setValue('M');
+    }
+    
+    // Re-generate QR code if it already exists
+    if (this.qrDataString) {
+      this.generateQRCode();
+    }
   }
 
   onTypeChange(): void {
@@ -152,6 +233,35 @@ export class QrGenerator implements OnInit {
     }
   }
 
+  // Method to check if QR code with logo will be readable
+  checkQrReadability(): void {
+    if (!this.qrWithLogoComponent || !this.qrForm.get('addLogo')?.value || !this.logoURL) {
+      return; // No logo to check
+    }
+    
+    // Get the assessment from QrWithLogoComponent
+    const assessment = this.qrWithLogoComponent.assessLogoImpact();
+    
+    if (!assessment.readable) {
+      // Show warning if QR might not be readable
+      alert(`Warning: ${assessment.recommendations}`);
+      
+      // Automatically adjust settings for better readability
+      const formValue = this.qrForm.value;
+      
+      // Ensure error correction is high
+      if (formValue.errorCorrection !== 'H') {
+        this.qrForm.get('errorCorrection')?.setValue('H');
+      }
+      
+      // Calculate safe logo size (20% of QR code)
+      const safeLogoSize = Math.round(formValue.size * 0.2);
+      if (formValue.logoSize > safeLogoSize) {
+        this.qrForm.get('logoSize')?.setValue(safeLogoSize);
+      }
+    }
+  }
+
   generateQRCode(): void {
     if (this.qrForm.invalid) {
       return;
@@ -159,6 +269,22 @@ export class QrGenerator implements OnInit {
 
     this.isGenerating = true;
     const formValue = this.qrForm.value;
+    
+    // Check logo impact on QR readability before generating
+    if (formValue.addLogo && this.logoURL) {
+      // Ensure error correction is high when using a logo
+      if (formValue.errorCorrection !== 'H') {
+        console.log('Setting error correction to H for better logo compatibility');
+        this.qrForm.get('errorCorrection')?.setValue('H');
+      }
+      
+      // Make sure logo size is reasonable (max 20% of QR size)
+      const maxLogoSize = Math.round(formValue.size * 0.2);
+      if (formValue.logoSize > maxLogoSize) {
+        console.log(`Reducing logo size from ${formValue.logoSize}px to ${maxLogoSize}px for better QR readability`);
+        this.qrForm.get('logoSize')?.setValue(maxLogoSize);
+      }
+    }
     
     switch(formValue.qrType) {
       case 'url':
@@ -208,11 +334,184 @@ export class QrGenerator implements OnInit {
     this.isGenerating = false;
   }
 
-  downloadQRCode(fileType: 'png' | 'svg'): void {
+  async downloadQRCode(fileType: 'png' | 'svg'): Promise<void> {
+    // First check QR code readability if using logo
+    this.checkQrReadability();
+    
+    // Get form values (after potential adjustments from readability check)
+    const formValue = this.qrForm.value;
+    const includeLogo = formValue.addLogo === true && this.logoURL !== null;
+    const logoSize = includeLogo ? formValue.logoSize : 60; // Default to 60px if not specified
+    const fileName = `${formValue.qrType || 'qrcode'}-${new Date().toISOString().split('T')[0]}`;
+    
+    // ALWAYS ensure error correction is set to high when using a logo
+    if (includeLogo) {
+      // Force high error correction level for logo QR codes to improve readability
+      this.qrForm.get('errorCorrection')?.setValue('H');
+      
+      // Ensure logo size isn't too large - limit to at most 20% of QR size for better readability
+      const qrSize = formValue.size || 200;
+      const maxLogoSize = Math.round(qrSize * 0.2); // 20% of QR code size
+      
+      if (formValue.logoSize > maxLogoSize) {
+        console.log(`Adjusting logo size from ${formValue.logoSize}px to ${maxLogoSize}px for better readability`);
+        this.qrForm.get('logoSize')?.setValue(maxLogoSize);
+      }
+    }
+    
+    // If we're using a logo, make sure it's rendered completely before downloading
+    if (includeLogo && this.qrWithLogoComponent) {
+      try {
+        // This will render the logo and return a promise when complete
+        await this.qrWithLogoComponent.refreshLogoRendering();
+      } catch (e) {
+        console.error('Error refreshing logo rendering:', e);
+      }
+    }
+    
+    if (fileType === 'png') {
+      // Find the visible canvas element - if logo is showing, use the overlay canvas
+      let canvas: HTMLCanvasElement | null = null;
+      
+      if (includeLogo && this.qrWithLogoComponent) {
+        // Get the canvas directly from the ViewChild reference
+        canvas = this.qrWithLogoComponent.canvasRef?.nativeElement;
+      }
+      
+      // Fallback to DOM query if ViewChild approach fails
+      if (!canvas) {
+        if (includeLogo) {
+          canvas = document.querySelector('app-qr-with-logo .qr-canvas') as HTMLCanvasElement;
+        } else {
+          canvas = document.querySelector('app-qr-with-logo .qr-element canvas') as HTMLCanvasElement;
+        }
+      }
+      
+      if (canvas) {
+        try {
+          // Create link and trigger download
+          const link = document.createElement('a');
+          link.download = `${fileName}.png`;
+          link.href = canvas.toDataURL('image/png');
+          link.click();
+          return;
+        } catch (e) {
+          console.error('Error generating PNG:', e);
+          alert('Could not download QR code. Please try again.');
+        }
+      }
+    } else if (fileType === 'svg') {
+      // For SVG we need to handle differently
+      let svgElement: SVGElement | null = null;
+      
+      // Try to get SVG from component reference first
+      if (this.qrWithLogoComponent && this.qrWithLogoComponent.qrcodeComponent) {
+        const qrElement = this.qrWithLogoComponent.qrcodeComponent.qrcElement?.nativeElement;
+        if (qrElement) {
+          svgElement = qrElement.querySelector('svg');
+        }
+      }
+      
+      // Fallback to DOM query
+      if (!svgElement) {
+        svgElement = document.querySelector('app-qr-with-logo .qr-element svg') as SVGElement;
+      }
+      
+      if (svgElement) {
+        try {
+          // Clone the SVG to avoid modifying the original
+          const clonedSvg = svgElement.cloneNode(true) as SVGElement;
+          
+          // Set proper attributes for standalone SVG
+          clonedSvg.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+          clonedSvg.setAttribute('version', '1.1');
+          
+          // If we need to add a logo to the SVG
+          if (includeLogo && this.logoURL) {
+            // Get dimensions
+            const width = parseFloat(clonedSvg.getAttribute('width') || '200');
+            const height = parseFloat(clonedSvg.getAttribute('height') || '200');
+            // Use a smaller percentage (15-20%) of QR code size for the logo to maintain readability
+            const qrSize = Math.min(width, height);
+            const calculatedLogoSize = logoSize ? Math.min(logoSize, qrSize * 0.2) : qrSize * 0.15;
+            // Further limit size for readability
+            const finalLogoSize = Math.min(calculatedLogoSize, qrSize * 0.2);
+            const logoX = (width - finalLogoSize) / 2;
+            const logoY = (height - finalLogoSize) / 2;
+            
+            // Create a group for logo elements
+            const ns = "http://www.w3.org/2000/svg";
+            const group = document.createElementNS(ns, "g");
+            
+            // Add white circle background for the logo
+            const circle = document.createElementNS(ns, "circle");
+            // Use more generous padding (15%) for better readability
+            const padding = Math.max(10, finalLogoSize * 0.15);
+            circle.setAttribute("cx", (width/2).toString());
+            circle.setAttribute("cy", (height/2).toString());
+            circle.setAttribute("r", ((finalLogoSize/2) + padding).toString());
+            circle.setAttribute("fill", "white");
+            // Add a white stroke for extra padding/margin around logo
+            circle.setAttribute("stroke", "white");
+            circle.setAttribute("stroke-width", "4");
+            
+            // Add logo image 
+            const image = document.createElementNS(ns, "image");
+            image.setAttribute("x", logoX.toString());
+            image.setAttribute("y", logoY.toString());
+            image.setAttribute("width", finalLogoSize.toString());
+            image.setAttribute("height", finalLogoSize.toString());
+            image.setAttribute("href", this.logoURL);
+            image.setAttribute("preserveAspectRatio", "xMidYMid meet");
+            
+            // Clip the image to be circular
+            const clipPath = document.createElementNS(ns, "clipPath");
+            const clipId = "logo-clip-" + Date.now();
+            clipPath.setAttribute("id", clipId);
+            
+            const clipCircle = document.createElementNS(ns, "circle");
+            clipCircle.setAttribute("cx", (width/2).toString());
+            clipCircle.setAttribute("cy", (height/2).toString());
+            clipCircle.setAttribute("r", (finalLogoSize/2).toString());
+            
+            clipPath.appendChild(clipCircle);
+            clonedSvg.appendChild(clipPath);
+            
+            image.setAttribute("clip-path", `url(#${clipId})`);
+            
+            // Add elements to SVG
+            group.appendChild(circle);
+            group.appendChild(image);
+            clonedSvg.appendChild(group);
+          }
+          
+          // Convert to string and download
+          const svgData = new XMLSerializer().serializeToString(clonedSvg);
+          const svgBlob = new Blob([svgData], {type: "image/svg+xml"});
+          const url = URL.createObjectURL(svgBlob);
+          
+          const link = document.createElement('a');
+          link.href = url;
+          link.download = `${fileName}.svg`;
+          link.click();
+          
+          // Clean up
+          setTimeout(() => URL.revokeObjectURL(url), 100);
+          return;
+        } catch (e) {
+          console.error('Error generating SVG:', e);
+        }
+      }
+    }
+    
+    // Fall back to the standard method if the custom handling fails
     this.qrCodeService.downloadQRCode(
       fileType,
-      this.qrForm.get('qrType')?.value || 'qrcode',
-      document.querySelector('qrcode')
+      formValue.qrType || 'qrcode',
+      document.querySelector('app-qr-with-logo .qr-element'),
+      this.logoURL,
+      includeLogo,
+      logoSize
     );
   }
 

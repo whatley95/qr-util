@@ -262,7 +262,8 @@ export class QrScanner implements AfterViewInit, OnDestroy {
   }
   
   onPreviewLoaded(): void {
-    // Image loaded, ready for scanning
+    // Image loaded, automatically scan it
+    this.scanSelectedImage();
   }
   
   scanSelectedImage(): void {
@@ -289,13 +290,35 @@ export class QrScanner implements AfterViewInit, OnDestroy {
     try {
       const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
       
-      // Scan for QR code
+      // Attempt to scan with jsQR first
       const code = jsQR(imageData.data, imageData.width, imageData.height);
       
       if (code) {
         this.handleScanResult(code.data);
       } else {
-        alert('No QR code found in the image.');
+        // Fallback to ZXing if jsQR fails
+        try {
+          // Convert canvas to data URL
+          const imageUrl = canvas.toDataURL('image/png');
+          
+          // Create a new image from the data URL
+          const tempImg = new Image();
+          tempImg.onload = () => {
+            // Use ZXing BrowserMultiFormatReader as fallback
+            this.codeReader.decodeFromImageUrl(imageUrl)
+              .then((result: any) => {
+                this.handleScanResult(result.getText());
+              })
+              .catch(() => {
+                alert('No QR code found in the image. Try a different image or ensure the QR code is clearly visible.');
+              });
+          };
+          
+          tempImg.src = imageUrl;
+        } catch (zxingError) {
+          console.error('ZXing error:', zxingError);
+          alert('No QR code found in the image.');
+        }
       }
     } catch (error) {
       console.error('Error scanning image:', error);
