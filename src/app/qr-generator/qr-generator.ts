@@ -17,6 +17,18 @@ export class QrGenerator implements OnInit {
   qrForm!: FormGroup;
   qrDataString: string = '';
   isGenerating: boolean = false;
+  
+  // Color presets for quick selection
+  colorPresets = [
+    { name: 'Classic', dark: '#000000', light: '#ffffff' },
+    { name: 'Blue', dark: '#1a73e8', light: '#ffffff' },
+    { name: 'Green', dark: '#34a853', light: '#ffffff' },
+    { name: 'Purple', dark: '#9c27b0', light: '#ffffff' },
+    { name: 'Orange', dark: '#ff9800', light: '#ffffff' },
+    { name: 'Red', dark: '#f44336', light: '#ffffff' },
+    { name: 'Dark Mode', dark: '#ffffff', light: '#121212' },
+    { name: 'Gradient Blue', dark: '#667eea', light: '#764ba2' }
+  ];
 
   constructor(
     private fb: FormBuilder,
@@ -25,6 +37,27 @@ export class QrGenerator implements OnInit {
 
   ngOnInit(): void {
     this.initializeForm();
+    this.setupTabSwitching();
+  }
+
+  private setupTabSwitching(): void {
+    // Use setTimeout to ensure DOM is ready
+    setTimeout(() => {
+      const tabButtons = document.querySelectorAll('.tab-btn');
+      const tabContents = document.querySelectorAll('.tab-content');
+
+      tabButtons.forEach((button, index) => {
+        button.addEventListener('click', () => {
+          // Remove active class from all tabs and contents
+          tabButtons.forEach(btn => btn.classList.remove('active'));
+          tabContents.forEach(content => content.classList.remove('active'));
+          
+          // Add active class to clicked tab and corresponding content
+          button.classList.add('active');
+          tabContents[index]?.classList.add('active');
+        });
+      });
+    }, 0);
   }
 
   initializeForm(): void {
@@ -57,6 +90,10 @@ export class QrGenerator implements OnInit {
       title: [''],
       contactUrl: [''],
       address: [''],
+      // QR Design Customization
+      colorDark: ['#000000'],
+      colorLight: ['#ffffff'],
+      margin: [4],
       // Common options
       errorCorrection: ['M'],
       size: [200]
@@ -70,7 +107,8 @@ export class QrGenerator implements OnInit {
     
     // Reset all validators
     for (const controlName in this.qrForm.controls) {
-      if (controlName !== 'qrType' && controlName !== 'errorCorrection' && controlName !== 'size') {
+      if (controlName !== 'qrType' && controlName !== 'errorCorrection' && controlName !== 'size' && 
+          controlName !== 'colorDark' && controlName !== 'colorLight' && controlName !== 'margin') {
         this.qrForm.get(controlName)?.clearValidators();
         this.qrForm.get(controlName)?.updateValueAndValidity();
       }
@@ -176,6 +214,14 @@ export class QrGenerator implements OnInit {
       this.qrForm.get('qrType')?.value || 'qrcode',
       document.querySelector('qrcode')
     );
+  }
+
+  // Method to apply a color preset
+  applyColorPreset(preset: any): void {
+    this.qrForm.patchValue({
+      colorDark: preset.dark,
+      colorLight: preset.light
+    });
   }
 
   isFieldInvalid(fieldName: string): boolean {

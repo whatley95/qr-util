@@ -1,22 +1,35 @@
 <div class="qr-generator">
-  <h1>Generate QR Code</h1>
-  <p class="description">Select a QR code type and fill in the details to generate your code.</p>
+  <div class="header-section">
+    <h1>🎨 Advanced QR Generator</h1>
+    <p class="description">Create beautiful, customizable QR codes with modern design options</p>
+  </div>
 
   <div class="content-container">
+    <!-- Enhanced Settings Panel -->
     <div class="settings-panel">
+      <div class="panel-tabs">
+        <button type="button" class="tab-btn active" id="content-tab">📝 Content</button>
+        <button type="button" class="tab-btn" id="design-tab">🎨 Design</button>
+        <button type="button" class="tab-btn" id="advanced-tab">⚙️ Advanced</button>
+      </div>
+
       <form [formGroup]="qrForm" (ngSubmit)="generateQRCode()">
-        <div class="form-group">
-          <label for="qrType">QR Code Type:</label>
-          <select id="qrType" formControlName="qrType" (change)="onTypeChange()">
-            <option value="url">URL</option>
-            <option value="text">Text</option>
-            <option value="email">Email</option>
-            <option value="phone">Phone Number</option>
-            <option value="sms">SMS</option>
-            <option value="wifi">WiFi</option>
-            <option value="vcard">Contact (vCard)</option>
-          </select>
-        </div>
+        <!-- Content Tab -->
+        <div class="tab-content active" id="content-panel">
+          <div class="form-group">
+            <label for="qrType">QR Code Type:</label>
+            <div class="select-wrapper">
+              <select id="qrType" formControlName="qrType" (change)="onTypeChange()">
+                <option value="url">🌐 URL</option>
+                <option value="text">📝 Text</option>
+                <option value="email">📧 Email</option>
+                <option value="phone">📞 Phone Number</option>
+                <option value="sms">💬 SMS</option>
+                <option value="wifi">📶 WiFi</option>
+                <option value="vcard">👤 Contact (vCard)</option>
+              </select>
+            </div>
+          </div>
 
         <!-- Dynamic form fields based on selected type -->
         <ng-container *ngIf="qrForm.get('qrType')?.value === 'url'">
@@ -135,42 +148,138 @@
           </div>
         </ng-container>
 
-        <div class="form-group">
-          <label for="errorCorrection">Error Correction:</label>
-          <select id="errorCorrection" formControlName="errorCorrection">
-            <option value="L">Low (7%)</option>
-            <option value="M">Medium (15%)</option>
-            <option value="Q">Quartile (25%)</option>
-            <option value="H">High (30%)</option>
-          </select>
         </div>
 
-        <div class="form-group">
-          <label for="size">Size:</label>
-          <input type="range" id="size" formControlName="size" min="100" max="400" step="10">
-          <span class="range-value">{{ qrForm.get('size')?.value }}px</span>
+        <!-- Design Tab -->
+        <div class="tab-content" id="design-panel">
+          <div class="design-section">
+            <h3>🎨 QR Code Design</h3>
+            
+            <div class="color-presets">
+              <label>Quick Color Presets:</label>
+              <div class="preset-grid">
+                <button type="button" 
+                        *ngFor="let preset of colorPresets" 
+                        class="preset-btn"
+                        [style.background]="'linear-gradient(45deg, ' + preset.dark + ', ' + preset.light + ')'"
+                        (click)="applyColorPreset(preset)"
+                        [title]="preset.name">
+                  {{ preset.name }}
+                </button>
+              </div>
+            </div>
+
+            <div class="color-controls">
+              <div class="form-group">
+                <label for="colorDark">Foreground Color:</label>
+                <div class="color-input-wrapper">
+                  <input type="color" id="colorDark" formControlName="colorDark" class="color-picker">
+                  <input type="text" [value]="qrForm.get('colorDark')?.value" 
+                         (input)="qrForm.get('colorDark')?.setValue($any($event.target).value)"
+                         class="color-text" placeholder="#000000">
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label for="colorLight">Background Color:</label>
+                <div class="color-input-wrapper">
+                  <input type="color" id="colorLight" formControlName="colorLight" class="color-picker">
+                  <input type="text" [value]="qrForm.get('colorLight')?.value"
+                         (input)="qrForm.get('colorLight')?.setValue($any($event.target).value)"
+                         class="color-text" placeholder="#ffffff">
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
 
-        <button type="submit" [disabled]="qrForm.invalid || isGenerating">
-          {{ isGenerating ? 'Generating...' : 'Generate QR Code' }}
-        </button>
+        <!-- Advanced Tab -->
+        <div class="tab-content" id="advanced-panel">
+          <div class="advanced-section">
+            <h3>⚙️ Advanced Settings</h3>
+            
+            <div class="form-group">
+              <label for="errorCorrection">Error Correction Level:</label>
+              <div class="select-wrapper">
+                <select id="errorCorrection" formControlName="errorCorrection">
+                  <option value="L">🟢 Low (7%) - Smallest size</option>
+                  <option value="M">🟡 Medium (15%) - Balanced</option>
+                  <option value="Q">🟠 Quartile (25%) - Good resilience</option>
+                  <option value="H">🔴 High (30%) - Maximum resilience</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label for="size">QR Code Size:</label>
+              <div class="range-wrapper">
+                <input type="range" id="size" formControlName="size" min="100" max="500" step="25" class="range-slider">
+                <span class="range-value">{{ qrForm.get('size')?.value }}px</span>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label for="margin">Border Margin:</label>
+              <div class="range-wrapper">
+                <input type="range" id="margin" formControlName="margin" min="0" max="10" step="1" class="range-slider">
+                <span class="range-value">{{ qrForm.get('margin')?.value }} modules</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="generate-section">
+          <button type="submit" [disabled]="qrForm.invalid || isGenerating" class="generate-btn">
+            <span *ngIf="!isGenerating">✨ Generate QR Code</span>
+            <span *ngIf="isGenerating" class="loading">🔄 Generating...</span>
+          </button>
+        </div>
       </form>
     </div>
 
-    <div class="preview-panel" *ngIf="qrDataString">
-      <div class="qr-display">
-        <div class="qr-code">
+    <!-- Enhanced Preview Panel -->
+
+    <!-- Enhanced Preview Panel -->
+    <div class="preview-panel">
+      <div class="qr-display" *ngIf="qrDataString">
+        <div class="preview-header">
+          <h3>🎯 Your QR Code</h3>
+          <div class="qr-stats">
+            <span class="stat">Size: {{ qrForm.get('size')?.value }}px</span>
+            <span class="stat">Error Level: {{ qrForm.get('errorCorrection')?.value }}</span>
+          </div>
+        </div>
+        
+        <div class="qr-code-container">
           <qrcode
             [qrdata]="qrDataString"
             [width]="qrForm.get('size')?.value"
+            [colorDark]="qrForm.get('colorDark')?.value"
+            [colorLight]="qrForm.get('colorLight')?.value"
+            [margin]="qrForm.get('margin')?.value"
             [errorCorrectionLevel]="qrForm.get('errorCorrection')?.value"
-          ></qrcode>
+            class="qr-code-element">
+          </qrcode>
         </div>
         
-        <div class="actions">
-          <button (click)="downloadQRCode('png')" class="btn-download">Download PNG</button>
-          <button (click)="downloadQRCode('svg')" class="btn-download">Download SVG</button>
+        <div class="download-section">
+          <h4>💾 Download Options</h4>
+          <div class="download-actions">
+            <button (click)="downloadQRCode('png')" class="download-btn png-btn">
+              📸 PNG Image
+            </button>
+            <button (click)="downloadQRCode('svg')" class="download-btn svg-btn">
+              🎨 SVG Vector
+            </button>
+          </div>
         </div>
+      </div>
+      
+      <!-- Empty State -->
+      <div class="empty-preview" *ngIf="!qrDataString">
+        <div class="empty-icon">📱</div>
+        <h3>Ready to Generate</h3>
+        <p>Fill in the content details and click "Generate QR Code" to see your customized QR code here.</p>
       </div>
     </div>
   </div>

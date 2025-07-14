@@ -14,11 +14,12 @@ export class QrScanner implements AfterViewInit, OnDestroy {
   @ViewChild('videoElement') videoElement?: ElementRef<HTMLVideoElement>;
   @ViewChild('previewImage') previewImage?: ElementRef<HTMLImageElement>;
   
-  scanOption: 'camera' | 'file' = 'camera';
+  scanOption: 'camera' | 'file' = 'file'; // Default to file option
   isCameraReady = false;
   selectedFile: File | null = null;
   previewImageUrl: string | null = null;
   isDragging = false;
+  isMobileDevice = false; // New property to detect mobile devices
   
   // QR code scan result
   scanResult: string | null = null;
@@ -31,7 +32,32 @@ export class QrScanner implements AfterViewInit, OnDestroy {
   private scanInterval: any;
   
   ngAfterViewInit(): void {
+    this.detectMobileDevice();
     this.checkCameraAvailability();
+  }
+  
+  // Check if the device is a mobile device
+  private detectMobileDevice(): void {
+    // Check if device is mobile using userAgent or screen size
+    const userAgent = navigator.userAgent.toLowerCase();
+    const mobileKeywords = ['android', 'iphone', 'ipad', 'ipod', 'windows phone', 'blackberry', 'opera mini', 'mobile'];
+    this.isMobileDevice = mobileKeywords.some(keyword => userAgent.includes(keyword)) || window.innerWidth <= 991;
+    
+    // Default to file option on desktop, camera on mobile if available
+    if (!this.isMobileDevice) {
+      this.scanOption = 'file';
+    }
+    
+    // Add resize listener to handle orientation changes or window resizing
+    window.addEventListener('resize', () => {
+      const wasMobile = this.isMobileDevice;
+      this.isMobileDevice = mobileKeywords.some(keyword => userAgent.includes(keyword)) || window.innerWidth <= 991;
+      
+      // If changing from mobile to desktop, switch to file option
+      if (wasMobile && !this.isMobileDevice) {
+        this.scanOption = 'file';
+      }
+    });
   }
   
   ngOnDestroy(): void {
