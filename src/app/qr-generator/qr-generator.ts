@@ -66,11 +66,11 @@ export class QrGenerator implements OnInit {
 
   initializeForm(): void {
     this.qrForm = this.fb.group({
-      qrType: ['url', Validators.required],
+      qrType: ['text', Validators.required],
       // URL type
       url: ['https://', [Validators.required, Validators.pattern('https?://.+')]],
       // Text type
-      text: [''],
+      text: ['Enter your text here', Validators.required],
       // Email type
       email: ['', Validators.email],
       emailSubject: [''],

@@ -1,4 +1,36 @@
-# QrUtil
+# QR Util
+
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
+
+A modern, feature-rich QR code generator and scanner utility built with Angular. This open source tool allows you to create customizable QR codes and scan existing ones with ease.
+
+![QR Util Screenshot](https://via.placeholder.com/800x400?text=QR+Util+Screenshot)
+
+## Features
+
+- **QR Code Generation**: Create QR codes for various content types:
+  - URLs
+  - Plain text
+  - Email addresses with subject/body
+  - Phone numbers
+  - SMS messages
+  - WiFi network credentials
+  - vCards (contact information)
+
+- **Customization Options**:
+  - Color presets for QR codes
+  - Custom logo embedding with automatic readability optimization
+  - Error correction level adjustment
+  - Size and margin controls
+
+- **QR Code Scanning**:
+  - Upload and scan QR code images
+  - Camera-based scanning on supported devices
+  - Detailed analysis of scanned QR content
+
+- **Export Options**:
+  - Download as PNG
+  - Download as SVG
 
 This project was generated using [Angular CLI](https://github.com/angular/angular-cli) version 20.1.0.
 
@@ -54,7 +86,37 @@ ng e2e
 
 Angular CLI does not come with an end-to-end testing framework by default. You can choose one that suits your needs.
 
-## Additional Resources
+## Contributing
 
-For more information on using the Angular CLI, including detailed command references, visit the [Angular CLI Overview and Command Reference](https://angular.dev/tools/cli) page.
-"# qr-util" 
+Contributions are welcome! If you'd like to help improve QR Util, please follow these steps:
+
+1. Fork the repository
+2. Create a feature branch: `git checkout -b feature/amazing-feature`
+3. Commit your changes: `git commit -m 'Add some amazing feature'`
+4. Push to your branch: `git push origin feature/amazing-feature`
+5. Open a Pull Request
+
+### Development Guidelines
+
+- Follow the Angular style guide
+- Write tests for new features
+- Ensure your code passes linting checks: `ng lint`
+
+## License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## Acknowledgements
+
+- [Angular](https://angular.dev/)
+- [angularx-qrcode](https://www.npmjs.com/package/angularx-qrcode)
+- [jsQR](https://github.com/cozmo/jsQR)
+- [ZXing](https://github.com/zxing/zxing)
+
+## Contact
+
+Project Link: [https://github.com/whatley95/qr-util](https://github.com/whatley95/qr-util)
+
+---
+
+Created by [whatley95](https://github.com/whatley95) - feel free to contact me!

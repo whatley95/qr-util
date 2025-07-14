@@ -25,6 +25,15 @@ export class QrScanner implements AfterViewInit, OnDestroy {
   scanResult: string | null = null;
   scanResultType = '';
   
+  // Additional information about the uploaded QR code
+  qrUploadInfo = {
+    fileSize: '',
+    dimensions: '',
+    uploadTime: '',
+    fileType: '',
+    fileName: ''
+  };
+  
   private stream: MediaStream | null = null;
   private codeReader = new BrowserMultiFormatReader();
   private videoDevices: MediaDeviceInfo[] = [];
@@ -251,6 +260,23 @@ export class QrScanner implements AfterViewInit, OnDestroy {
     
     // Create preview URL
     this.previewImageUrl = URL.createObjectURL(file);
+    
+    // Update upload info
+    this.qrUploadInfo = {
+      fileName: file.name,
+      fileSize: this.formatFileSize(file.size),
+      fileType: file.type,
+      dimensions: 'Loading...',
+      uploadTime: new Date().toLocaleString()
+    };
+  }
+  
+  formatFileSize(bytes: number): string {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   }
   
   clearSelectedFile(): void {
@@ -262,6 +288,12 @@ export class QrScanner implements AfterViewInit, OnDestroy {
   }
   
   onPreviewLoaded(): void {
+    // Update dimensions in upload info
+    if (this.previewImage) {
+      const img = this.previewImage.nativeElement;
+      this.qrUploadInfo.dimensions = `${img.naturalWidth} x ${img.naturalHeight}`;
+    }
+    
     // Image loaded, automatically scan it
     this.scanSelectedImage();
   }

@@ -46,15 +46,16 @@
         </div>
       </div>
 
-      <!-- Side-by-side layout for file upload and results -->
-      <div class="side-by-side-container" *ngIf="(!isMobileDevice || scanOption === 'file')">
-        <!-- File upload option -->
-        <div class="file-container">
+      <!-- Vertical layout with file upload first, then results in a new row -->
+      <div class="vertical-layout-container" *ngIf="(!isMobileDevice || scanOption === 'file')">
+        <!-- File upload section -->
+        <div class="file-upload-section">
           <div class="file-drop-area" 
                (dragover)="onDragOver($event)" 
                (dragleave)="onDragLeave($event)" 
                (drop)="onFileDrop($event)"
-               [class.drag-over]="isDragging">
+               [class.drag-over]="isDragging"
+               *ngIf="!selectedFile">
             
             <div class="upload-icon">
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -72,28 +73,58 @@
             </label>
             <p class="file-formats">Supports JPG, PNG, GIF, BMP</p>
           </div>
+        </div>
 
-          <div *ngIf="selectedFile" class="selected-file">
-            <div class="file-info">
-              <span>{{ selectedFile.name }}</span>
-              <button (click)="clearSelectedFile()" class="clear-file-btn">
-                Clear
-              </button>
-            </div>
-
-            <div class="preview-container">
+        <!-- Uploaded QR Code Section (New Row) -->
+        <div *ngIf="selectedFile" class="uploaded-qr-section">
+          <h3>Uploaded QR Code</h3>
+          
+          <div class="uploaded-qr-container">
+            <!-- QR Preview -->
+            <div class="qr-preview-container">
               <img #previewImage [src]="previewImageUrl" alt="QR code preview" (load)="onPreviewLoaded()">
+              
+              <div class="file-actions">
+                <button (click)="scanSelectedImage()" class="scan-btn">
+                  Re-Scan QR Code
+                </button>
+                <button (click)="clearSelectedFile()" class="clear-file-btn">
+                  Clear
+                </button>
+              </div>
             </div>
-
-            <!-- Button now only for rescanning if needed -->
-            <button (click)="scanSelectedImage()" class="scan-btn">
-              Re-Scan QR Code
-            </button>
+            
+            <!-- QR File Info -->
+            <div class="qr-file-info">
+              <h4>File Information</h4>
+              <div class="info-item">
+                <span class="info-label">File name:</span>
+                <span class="info-value">{{ qrUploadInfo.fileName }}</span>
+              </div>
+              <div class="info-item">
+                <span class="info-label">File size:</span>
+                <span class="info-value">{{ qrUploadInfo.fileSize }}</span>
+              </div>
+              <div class="info-item">
+                <span class="info-label">File type:</span>
+                <span class="info-value">{{ qrUploadInfo.fileType }}</span>
+              </div>
+              <div class="info-item">
+                <span class="info-label">Dimensions:</span>
+                <span class="info-value">{{ qrUploadInfo.dimensions }}</span>
+              </div>
+              <div class="info-item">
+                <span class="info-label">Upload time:</span>
+                <span class="info-value">{{ qrUploadInfo.uploadTime }}</span>
+              </div>
+            </div>
           </div>
         </div>
 
-        <!-- Results display - always visible in side-by-side layout -->
-        <div class="results-section">
+        <!-- Results display section -->
+        <div class="results-section" [class.with-uploaded-qr]="selectedFile">
+          <h3>Scan Results</h3>
+          
           <div *ngIf="!scanResult" class="empty-result-container">
             <div class="empty-result-icon">
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
