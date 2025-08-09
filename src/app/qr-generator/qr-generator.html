@@ -8,14 +8,14 @@
     <!-- Enhanced Settings Panel -->
     <div class="settings-panel">
       <div class="panel-tabs">
-        <button type="button" class="tab-btn active" id="content-tab">📝 Content</button>
-        <button type="button" class="tab-btn" id="design-tab">🎨 Design</button>
-        <button type="button" class="tab-btn" id="advanced-tab">⚙️ Advanced</button>
+        <button type="button" class="tab-btn" [class.active]="activeTab==='content'" id="content-tab" (click)="activeTab='content'">📝 Content</button>
+        <button type="button" class="tab-btn" [class.active]="activeTab==='design'" id="design-tab" (click)="activeTab='design'">🎨 Design</button>
+        <button type="button" class="tab-btn" [class.active]="activeTab==='advanced'" id="advanced-tab" (click)="activeTab='advanced'">⚙️ Advanced</button>
       </div>
 
       <form [formGroup]="qrForm" (ngSubmit)="generateQRCode()">
         <!-- Content Tab -->
-        <div class="tab-content active" id="content-panel">
+        <div class="tab-content" [class.active]="activeTab==='content'" id="content-panel">
           <div class="form-group">
             <label for="qrType">QR Code Type:</label>
             <div class="select-wrapper">
@@ -139,7 +139,7 @@
             <input type="text" id="title" formControlName="title" placeholder="Job Title">
           </div>
           <div class="form-group">
-            <label for="url">Website (optional):</label>
+            <label for="contactUrl">Website (optional):</label>
             <input type="url" id="contactUrl" formControlName="contactUrl" placeholder="https://example.com">
           </div>
           <div class="form-group">
@@ -151,7 +151,7 @@
         </div>
 
         <!-- Design Tab -->
-        <div class="tab-content" id="design-panel">
+        <div class="tab-content" [class.active]="activeTab==='design'" id="design-panel">
           <div class="design-section">
             <h3>🎨 QR Code Design</h3>
             
@@ -187,6 +187,43 @@
                   <input type="text" [value]="qrForm.get('colorLight')?.value"
                          (input)="qrForm.get('colorLight')?.setValue($any($event.target).value)"
                          class="color-text" placeholder="#ffffff">
+                </div>
+              </div>
+            </div>
+
+            <!-- Gradient controls -->
+            <div class="form-group">
+              <label class="checkbox-label">
+                <input type="checkbox" [checked]="qrForm.get('gradientEnabled')?.value" (change)="qrForm.get('gradientEnabled')?.setValue($any($event.target).checked)">
+                Use Gradient Foreground
+              </label>
+            </div>
+
+            <div class="color-controls" *ngIf="qrForm.get('gradientEnabled')?.value">
+              <div class="form-group">
+                <label for="gradFrom">Gradient From:</label>
+                <div class="color-input-wrapper">
+                  <input type="color" id="gradFrom" [value]="qrForm.get('gradientFrom')?.value" class="color-picker"
+                         (input)="qrForm.get('gradientFrom')?.setValue($any($event.target).value)">
+                  <input type="text" class="color-text" [value]="qrForm.get('gradientFrom')?.value"
+                         (input)="qrForm.get('gradientFrom')?.setValue($any($event.target).value)" placeholder="#667eea">
+                </div>
+              </div>
+              <div class="form-group">
+                <label for="gradTo">Gradient To:</label>
+                <div class="color-input-wrapper">
+                  <input type="color" id="gradTo" [value]="qrForm.get('gradientTo')?.value" class="color-picker"
+                         (input)="qrForm.get('gradientTo')?.setValue($any($event.target).value)">
+                  <input type="text" class="color-text" [value]="qrForm.get('gradientTo')?.value"
+                         (input)="qrForm.get('gradientTo')?.setValue($any($event.target).value)" placeholder="#764ba2">
+                </div>
+              </div>
+              <div class="form-group">
+                <label for="gradAngle">Gradient Angle:</label>
+                <div class="range-wrapper">
+                  <input type="range" id="gradAngle" [value]="qrForm.get('gradientAngle')?.value || 45" min="0" max="360" step="5" class="range-slider"
+                         (input)="qrForm.get('gradientAngle')?.setValue(+$any($event.target).value)">
+                  <span class="range-value">{{ qrForm.get('gradientAngle')?.value || 45 }}°</span>
                 </div>
               </div>
             </div>
@@ -231,7 +268,7 @@
         </div>
 
         <!-- Advanced Tab -->
-        <div class="tab-content" id="advanced-panel">
+        <div class="tab-content" [class.active]="activeTab==='advanced'" id="advanced-panel">
           <div class="advanced-section">
             <h3>⚙️ Advanced Settings</h3>
             
@@ -275,8 +312,6 @@
     </div>
 
     <!-- Enhanced Preview Panel -->
-
-    <!-- Enhanced Preview Panel -->
     <div class="preview-panel">
       <div class="qr-display" *ngIf="qrDataString">
         <div class="preview-header">
@@ -298,6 +333,10 @@
             [logoUrl]="logoURL"
             [showLogo]="qrForm.get('addLogo')?.value === true && logoURL !== null"
             [logoSize]="qrForm.get('logoSize')?.value"
+            [gradientEnabled]="qrForm.get('gradientEnabled')?.value"
+            [gradientFrom]="qrForm.get('gradientFrom')?.value"
+            [gradientTo]="qrForm.get('gradientTo')?.value"
+            [gradientAngle]="qrForm.get('gradientAngle')?.value || 45"
             class="qr-code-element">
           </app-qr-with-logo>
         </div>
@@ -305,12 +344,18 @@
         <div class="download-section">
           <h4>💾 Download Options</h4>
           <div class="download-actions">
-            <button (click)="downloadQRCode('png')" class="download-btn png-btn">
+            <button (click)="downloadQRCode('png')" class="download-btn png-btn" aria-label="Download PNG">
               📸 PNG Image
             </button>
-            <button (click)="downloadQRCode('svg')" class="download-btn svg-btn">
+            <button (click)="downloadQRCode('svg')" class="download-btn svg-btn" aria-label="Download SVG">
               🎨 SVG Vector
             </button>
+            <button (click)="copyQrData()" class="download-btn" aria-label="Copy QR content">
+              📋 Copy Content
+            </button>
+          </div>
+          <div class="info-text" *ngIf="copyNotice" aria-live="polite" style="margin-top:0.75rem;">
+            {{ copyNotice }}
           </div>
         </div>
       </div>

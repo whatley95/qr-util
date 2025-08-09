@@ -5,6 +5,7 @@ import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angula
 import { QrCodeService } from './../services/qr-code.service';
 // Import the QR with logo component
 import { QrWithLogoComponent } from './qr-with-logo.component';
+import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
 
 @Component({
   selector: 'app-qr-generator',
@@ -21,6 +22,12 @@ export class QrGenerator implements OnInit {
   logoURL: string | null = null;
   
   @ViewChild(QrWithLogoComponent) qrWithLogoComponent!: QrWithLogoComponent;
+
+  // Track active tab in a reactive, Angular-friendly way
+  activeTab: 'content' | 'design' | 'advanced' = 'content';
+  
+  // Inline copy notice
+  copyNotice: string | null = null;
   
   // Color presets for quick selection
   colorPresets = [
@@ -41,27 +48,18 @@ export class QrGenerator implements OnInit {
 
   ngOnInit(): void {
     this.initializeForm();
-    this.setupTabSwitching();
-  }
-
-  private setupTabSwitching(): void {
-    // Use setTimeout to ensure DOM is ready
-    setTimeout(() => {
-      const tabButtons = document.querySelectorAll('.tab-btn');
-      const tabContents = document.querySelectorAll('.tab-content');
-
-      tabButtons.forEach((button, index) => {
-        button.addEventListener('click', () => {
-          // Remove active class from all tabs and contents
-          tabButtons.forEach(btn => btn.classList.remove('active'));
-          tabContents.forEach(content => content.classList.remove('active'));
-          
-          // Add active class to clicked tab and corresponding content
-          button.classList.add('active');
-          tabContents[index]?.classList.add('active');
-        });
+    // Angular-driven tabs (remove DOM listeners)
+    // Live preview: update on form changes
+    this.qrForm.valueChanges
+      .pipe(debounceTime(200))
+      .subscribe(() => {
+        // Adjust validators that depend on other control values
+        this.syncDependentValidators();
+        // Auto-enforce safe logo settings if logo is enabled
+        this.enforceLogoSafety();
+        // Update data string when valid
+        this.updateQrDataString();
       });
-    }, 0);
   }
 
   initializeForm(): void {
@@ -70,15 +68,15 @@ export class QrGenerator implements OnInit {
       // URL type
       url: ['https://', [Validators.required, Validators.pattern('https?://.+')]],
       // Text type
-      text: ['Enter your text here', Validators.required],
+      text: ['', Validators.required],
       // Email type
       email: ['', Validators.email],
       emailSubject: [''],
       emailBody: [''],
       // Phone type
-      phone: ['', Validators.pattern('[+]?[0-9\\s-()]{8,}')],
+      phone: ['', Validators.pattern('[+]?[^A-Za-z]{8,}')],
       // SMS type
-      smsNumber: ['', Validators.pattern('[+]?[0-9\\s-()]{8,}')],
+      smsNumber: ['', Validators.pattern('[+]?[^A-Za-z]{8,}')],
       smsMessage: [''],
       // WiFi type
       ssid: [''],
@@ -101,14 +99,92 @@ export class QrGenerator implements OnInit {
       // Image/Logo options
       addLogo: [false],
       logoSize: [60], // logo size in pixels
+      // New gradient controls
+      gradientEnabled: [false],
+      gradientFrom: ['#667eea'],
+      gradientTo: ['#764ba2'],
+      gradientAngle: [45],
       // Common options
       errorCorrection: ['M'],
       size: [200]
     });
 
     this.onTypeChange();
+
+    // React to addLogo toggling for safety
+    this.qrForm.get('addLogo')?.valueChanges.subscribe(() => {
+      this.enforceLogoSafety();
+      this.updateQrDataString();
+    });
+
+    // React to encryption changes for WiFi password validator
+    this.qrForm.get('encryption')?.valueChanges.subscribe(() => {
+      this.syncDependentValidators();
+      this.updateQrDataString();
+    });
+
+    // Initial render
+    this.updateQrDataString();
   }
   
+  private syncDependentValidators(): void {
+    const type = this.qrForm.get('qrType')?.value;
+
+    // Reset all validators except design/common
+    for (const controlName in this.qrForm.controls) {
+      if (
+        controlName !== 'qrType' &&
+        controlName !== 'errorCorrection' &&
+        controlName !== 'size' &&
+        controlName !== 'colorDark' &&
+        controlName !== 'colorLight' &&
+        controlName !== 'margin' &&
+        controlName !== 'addLogo' &&
+        controlName !== 'logoSize'
+      ) {
+        this.qrForm.get(controlName)?.clearValidators();
+        this.qrForm.get(controlName)?.updateValueAndValidity({ emitEvent: false });
+      }
+    }
+
+    // Add validators based on type
+    switch(type) {
+      case 'url':
+        this.qrForm.get('url')?.setValidators([Validators.required, Validators.pattern('https?://.+')]);
+        break;
+      case 'text':
+        this.qrForm.get('text')?.setValidators(Validators.required);
+        break;
+      case 'email':
+        this.qrForm.get('email')?.setValidators([Validators.required, Validators.email]);
+        break;
+      case 'phone':
+        this.qrForm.get('phone')?.setValidators([Validators.required, Validators.pattern('[+]?[^A-Za-z]{8,}')]);
+        break;
+      case 'sms':
+        this.qrForm.get('smsNumber')?.setValidators([Validators.required, Validators.pattern('[+]?[^A-Za-z]{8,}')]);
+        break;
+      case 'wifi':
+        this.qrForm.get('ssid')?.setValidators(Validators.required);
+        if (this.qrForm.get('encryption')?.value !== 'nopass') {
+          this.qrForm.get('password')?.setValidators(Validators.required);
+        }
+        break;
+      case 'vcard':
+        this.qrForm.get('firstName')?.setValidators(Validators.required);
+        this.qrForm.get('lastName')?.setValidators(Validators.required);
+        if (this.qrForm.get('contactEmail')?.value) {
+          this.qrForm.get('contactEmail')?.setValidators(Validators.email);
+        }
+        break;
+    }
+
+    // Update validity without triggering cycles
+    for (const controlName in this.qrForm.controls) {
+      this.qrForm.get(controlName)?.updateValueAndValidity({ emitEvent: false });
+    }
+  }
+
   // Handle logo file selection
   onLogoSelected(event: Event): void {
     const input = event.target as HTMLInputElement;
@@ -121,7 +197,7 @@ export class QrGenerator implements OnInit {
         return;
       }
       
-      // Check image size - if too large, resize it
+      // Check image size - if too large, notify
       if (file.size > 500000) { // 500KB
         alert('For best results, use an image smaller than 500KB.');
       }
@@ -137,8 +213,6 @@ export class QrGenerator implements OnInit {
       this.logoURL = URL.createObjectURL(file);
       
       // When adding logo, automatically adjust settings for better readability
-      
-      // Always set error correction to high when using a logo
       this.qrForm.get('errorCorrection')?.setValue('H');
       this.qrForm.get('addLogo')?.setValue(true);
       
@@ -156,10 +230,8 @@ export class QrGenerator implements OnInit {
         this.qrForm.get('size')?.setValue(Math.max(qrSize, 200));
       }
       
-      // Re-generate QR code if it already exists
-      if (this.qrDataString) {
-        this.generateQRCode();
-      }
+      // Update preview if it already exists
+      this.updateQrDataString();
     }
   }
   
@@ -177,59 +249,38 @@ export class QrGenerator implements OnInit {
       this.qrForm.get('errorCorrection')?.setValue('M');
     }
     
-    // Re-generate QR code if it already exists
-    if (this.qrDataString) {
-      this.generateQRCode();
-    }
+    // Update preview
+    this.updateQrDataString();
   }
 
   onTypeChange(): void {
-    const type = this.qrForm.get('qrType')?.value;
-    
-    // Reset all validators
-    for (const controlName in this.qrForm.controls) {
-      if (controlName !== 'qrType' && controlName !== 'errorCorrection' && controlName !== 'size' && 
-          controlName !== 'colorDark' && controlName !== 'colorLight' && controlName !== 'margin') {
-        this.qrForm.get(controlName)?.clearValidators();
-        this.qrForm.get(controlName)?.updateValueAndValidity();
-      }
+    this.syncDependentValidators();
+  }
+
+  // Ensure settings are safe for a QR with a logo
+  private enforceLogoSafety(): void {
+    const formValue = this.qrForm.value;
+    const includeLogo = formValue.addLogo === true && this.logoURL !== null;
+    if (!includeLogo) {
+      return;
     }
 
-    // Add validators based on type
-    switch(type) {
-      case 'url':
-        this.qrForm.get('url')?.setValidators([Validators.required, Validators.pattern('https?://.+')]);
-        break;
-      case 'text':
-        this.qrForm.get('text')?.setValidators(Validators.required);
-        break;
-      case 'email':
-        this.qrForm.get('email')?.setValidators([Validators.required, Validators.email]);
-        break;
-      case 'phone':
-        this.qrForm.get('phone')?.setValidators([Validators.required, Validators.pattern('[+]?[0-9\\s-()]{8,}')]);
-        break;
-      case 'sms':
-        this.qrForm.get('smsNumber')?.setValidators([Validators.required, Validators.pattern('[+]?[0-9\\s-()]{8,}')]);
-        break;
-      case 'wifi':
-        this.qrForm.get('ssid')?.setValidators(Validators.required);
-        if (this.qrForm.get('encryption')?.value !== 'nopass') {
-          this.qrForm.get('password')?.setValidators(Validators.required);
-        }
-        break;
-      case 'vcard':
-        this.qrForm.get('firstName')?.setValidators(Validators.required);
-        this.qrForm.get('lastName')?.setValidators(Validators.required);
-        if (this.qrForm.get('contactEmail')?.value) {
-          this.qrForm.get('contactEmail')?.setValidators(Validators.email);
-        }
-        break;
+    // Force high error correction
+    if (formValue.errorCorrection !== 'H') {
+      this.qrForm.get('errorCorrection')?.setValue('H', { emitEvent: false });
     }
 
-    // Update validity
-    for (const controlName in this.qrForm.controls) {
-      this.qrForm.get(controlName)?.updateValueAndValidity();
+    // Limit logo size to <= 20% of QR size
+    const qrSize = formValue.size || 200;
+    const maxLogoSize = Math.round(qrSize * 0.2);
+    if (formValue.logoSize > maxLogoSize) {
+      this.qrForm.get('logoSize')?.setValue(maxLogoSize, { emitEvent: false });
+    }
+
+    // Ensure a reasonable quiet zone when using a logo
+    const minMargin = 2;
+    if ((formValue.margin ?? 0) < minMargin) {
+      this.qrForm.get('margin')?.setValue(minMargin, { emitEvent: false });
     }
   }
 
@@ -243,7 +294,6 @@ export class QrGenerator implements OnInit {
     const assessment = this.qrWithLogoComponent.assessLogoImpact();
     
     if (!assessment.readable) {
-      // Show warning if QR might not be readable
       alert(`Warning: ${assessment.recommendations}`);
       
       // Automatically adjust settings for better readability
@@ -262,36 +312,21 @@ export class QrGenerator implements OnInit {
     }
   }
 
-  generateQRCode(): void {
+  // Generate the data string based on current form values
+  private updateQrDataString(): void {
     if (this.qrForm.invalid) {
+      this.qrDataString = '';
       return;
     }
 
-    this.isGenerating = true;
     const formValue = this.qrForm.value;
-    
-    // Check logo impact on QR readability before generating
-    if (formValue.addLogo && this.logoURL) {
-      // Ensure error correction is high when using a logo
-      if (formValue.errorCorrection !== 'H') {
-        console.log('Setting error correction to H for better logo compatibility');
-        this.qrForm.get('errorCorrection')?.setValue('H');
-      }
-      
-      // Make sure logo size is reasonable (max 20% of QR size)
-      const maxLogoSize = Math.round(formValue.size * 0.2);
-      if (formValue.logoSize > maxLogoSize) {
-        console.log(`Reducing logo size from ${formValue.logoSize}px to ${maxLogoSize}px for better QR readability`);
-        this.qrForm.get('logoSize')?.setValue(maxLogoSize);
-      }
-    }
-    
+
     switch(formValue.qrType) {
       case 'url':
-        this.qrDataString = formValue.url;
+        this.qrDataString = formValue.url?.trim();
         break;
       case 'text':
-        this.qrDataString = formValue.text;
+        this.qrDataString = formValue.text?.toString() ?? '';
         break;
       case 'email':
         this.qrDataString = this.qrCodeService.generateEmailQR(
@@ -329,8 +364,30 @@ export class QrGenerator implements OnInit {
           formValue.address
         );
         break;
+      default:
+        this.qrDataString = '';
     }
-    
+  }
+
+  generateQRCode(): void {
+    if (this.qrForm.invalid) {
+      return;
+    }
+
+    this.isGenerating = true;
+    // Check logo impact on QR readability before generating
+    const formValue = this.qrForm.value;
+    if (formValue.addLogo && this.logoURL) {
+      if (formValue.errorCorrection !== 'H') {
+        this.qrForm.get('errorCorrection')?.setValue('H');
+      }
+      const maxLogoSize = Math.round((formValue.size || 200) * 0.2);
+      if (formValue.logoSize > maxLogoSize) {
+        this.qrForm.get('logoSize')?.setValue(maxLogoSize);
+      }
+    }
+
+    this.updateQrDataString();
     this.isGenerating = false;
   }
 
@@ -342,19 +399,14 @@ export class QrGenerator implements OnInit {
     const formValue = this.qrForm.value;
     const includeLogo = formValue.addLogo === true && this.logoURL !== null;
     const logoSize = includeLogo ? formValue.logoSize : 60; // Default to 60px if not specified
-    const fileName = `${formValue.qrType || 'qrcode'}-${new Date().toISOString().split('T')[0]}`;
+    const fileName = this.getFileBase();
     
     // ALWAYS ensure error correction is set to high when using a logo
     if (includeLogo) {
-      // Force high error correction level for logo QR codes to improve readability
       this.qrForm.get('errorCorrection')?.setValue('H');
-      
-      // Ensure logo size isn't too large - limit to at most 20% of QR size for better readability
       const qrSize = formValue.size || 200;
-      const maxLogoSize = Math.round(qrSize * 0.2); // 20% of QR code size
-      
+      const maxLogoSize = Math.round(qrSize * 0.2);
       if (formValue.logoSize > maxLogoSize) {
-        console.log(`Adjusting logo size from ${formValue.logoSize}px to ${maxLogoSize}px for better readability`);
         this.qrForm.get('logoSize')?.setValue(maxLogoSize);
       }
     }
@@ -362,7 +414,6 @@ export class QrGenerator implements OnInit {
     // If we're using a logo, make sure it's rendered completely before downloading
     if (includeLogo && this.qrWithLogoComponent) {
       try {
-        // This will render the logo and return a promise when complete
         await this.qrWithLogoComponent.refreshLogoRendering();
       } catch (e) {
         console.error('Error refreshing logo rendering:', e);
@@ -370,15 +421,12 @@ export class QrGenerator implements OnInit {
     }
     
     if (fileType === 'png') {
-      // Find the visible canvas element - if logo is showing, use the overlay canvas
       let canvas: HTMLCanvasElement | null = null;
       
       if (includeLogo && this.qrWithLogoComponent) {
-        // Get the canvas directly from the ViewChild reference
         canvas = this.qrWithLogoComponent.canvasRef?.nativeElement;
       }
       
-      // Fallback to DOM query if ViewChild approach fails
       if (!canvas) {
         if (includeLogo) {
           canvas = document.querySelector('app-qr-with-logo .qr-canvas') as HTMLCanvasElement;
@@ -389,7 +437,6 @@ export class QrGenerator implements OnInit {
       
       if (canvas) {
         try {
-          // Create link and trigger download
           const link = document.createElement('a');
           link.download = `${fileName}.png`;
           link.href = canvas.toDataURL('image/png');
@@ -401,10 +448,8 @@ export class QrGenerator implements OnInit {
         }
       }
     } else if (fileType === 'svg') {
-      // For SVG we need to handle differently
       let svgElement: SVGElement | null = null;
       
-      // Try to get SVG from component reference first
       if (this.qrWithLogoComponent && this.qrWithLogoComponent.qrcodeComponent) {
         const qrElement = this.qrWithLogoComponent.qrcodeComponent.qrcElement?.nativeElement;
         if (qrElement) {
@@ -412,50 +457,38 @@ export class QrGenerator implements OnInit {
         }
       }
       
-      // Fallback to DOM query
       if (!svgElement) {
         svgElement = document.querySelector('app-qr-with-logo .qr-element svg') as SVGElement;
       }
       
       if (svgElement) {
         try {
-          // Clone the SVG to avoid modifying the original
           const clonedSvg = svgElement.cloneNode(true) as SVGElement;
           
-          // Set proper attributes for standalone SVG
           clonedSvg.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
           clonedSvg.setAttribute('version', '1.1');
           
-          // If we need to add a logo to the SVG
           if (includeLogo && this.logoURL) {
-            // Get dimensions
             const width = parseFloat(clonedSvg.getAttribute('width') || '200');
             const height = parseFloat(clonedSvg.getAttribute('height') || '200');
-            // Use a smaller percentage (15-20%) of QR code size for the logo to maintain readability
             const qrSize = Math.min(width, height);
             const calculatedLogoSize = logoSize ? Math.min(logoSize, qrSize * 0.2) : qrSize * 0.15;
-            // Further limit size for readability
             const finalLogoSize = Math.min(calculatedLogoSize, qrSize * 0.2);
             const logoX = (width - finalLogoSize) / 2;
             const logoY = (height - finalLogoSize) / 2;
             
-            // Create a group for logo elements
             const ns = "http://www.w3.org/2000/svg";
             const group = document.createElementNS(ns, "g");
             
-            // Add white circle background for the logo
             const circle = document.createElementNS(ns, "circle");
-            // Use more generous padding (15%) for better readability
             const padding = Math.max(10, finalLogoSize * 0.15);
             circle.setAttribute("cx", (width/2).toString());
             circle.setAttribute("cy", (height/2).toString());
             circle.setAttribute("r", ((finalLogoSize/2) + padding).toString());
             circle.setAttribute("fill", "white");
-            // Add a white stroke for extra padding/margin around logo
             circle.setAttribute("stroke", "white");
             circle.setAttribute("stroke-width", "4");
             
-            // Add logo image 
             const image = document.createElementNS(ns, "image");
             image.setAttribute("x", logoX.toString());
             image.setAttribute("y", logoY.toString());
@@ -464,7 +497,6 @@ export class QrGenerator implements OnInit {
             image.setAttribute("href", this.logoURL);
             image.setAttribute("preserveAspectRatio", "xMidYMid meet");
             
-            // Clip the image to be circular
             const clipPath = document.createElementNS(ns, "clipPath");
             const clipId = "logo-clip-" + Date.now();
             clipPath.setAttribute("id", clipId);
@@ -479,13 +511,11 @@ export class QrGenerator implements OnInit {
             
             image.setAttribute("clip-path", `url(#${clipId})`);
             
-            // Add elements to SVG
             group.appendChild(circle);
             group.appendChild(image);
             clonedSvg.appendChild(group);
           }
           
-          // Convert to string and download
           const svgData = new XMLSerializer().serializeToString(clonedSvg);
           const svgBlob = new Blob([svgData], {type: "image/svg+xml"});
           const url = URL.createObjectURL(svgBlob);
@@ -495,7 +525,6 @@ export class QrGenerator implements OnInit {
           link.download = `${fileName}.svg`;
           link.click();
           
-          // Clean up
           setTimeout(() => URL.revokeObjectURL(url), 100);
           return;
         } catch (e) {
@@ -504,10 +533,10 @@ export class QrGenerator implements OnInit {
       }
     }
     
-    // Fall back to the standard method if the custom handling fails
+    // Fall back
     this.qrCodeService.downloadQRCode(
       fileType,
-      formValue.qrType || 'qrcode',
+      this.getFileBase(),
       document.querySelector('app-qr-with-logo .qr-element'),
       this.logoURL,
       includeLogo,
@@ -523,8 +552,59 @@ export class QrGenerator implements OnInit {
     });
   }
 
+  // Copy the current content string
+  async copyQrData(): Promise<void> {
+    try {
+      await navigator.clipboard.writeText(this.qrDataString || '');
+      this.copyNotice = 'Copied';
+      setTimeout(() => (this.copyNotice = null), 2000);
+    } catch {
+      // no-op
+    }
+  }
+
   isFieldInvalid(fieldName: string): boolean {
     const field = this.qrForm.get(fieldName);
     return field !== null && field !== undefined && field.touched && field.invalid;
+  }
+
+  // Build a descriptive file base name like url-example.com or text-hello-world
+  private getFileBase(): string {
+    const v = this.qrForm.value;
+    const sanitize = (s: string) =>
+      (s || '')
+        .toString()
+        .trim()
+        .toLowerCase()
+        .replace(/https?:\/\//, '')
+        .replace(/\s+/g, '-')
+        .replace(/[^a-z0-9-_\.]/g, '')
+        .slice(0, 40) || 'qrcode';
+
+    let base = 'qrcode';
+    switch (v.qrType) {
+      case 'url':
+        base = `url-${sanitize(v.url || '')}`;
+        break;
+      case 'text':
+        base = `text-${sanitize((v.text || '').slice(0, 24))}`;
+        break;
+      case 'email':
+        base = `email-${sanitize(v.email || '')}`;
+        break;
+      case 'phone':
+        base = `tel-${sanitize(v.phone || '')}`;
+        break;
+      case 'sms':
+        base = `sms-${sanitize(v.smsNumber || '')}`;
+        break;
+      case 'wifi':
+        base = `wifi-${sanitize(v.ssid || '')}`;
+        break;
+      case 'vcard':
+        base = `vcard-${sanitize(v.firstName || '')}-${sanitize(v.lastName || '')}`;
+        break;
+    }
+    return base.replace(/-+$/, '') || 'qrcode';
   }
 }

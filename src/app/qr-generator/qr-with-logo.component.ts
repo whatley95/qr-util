@@ -17,6 +17,7 @@ import { QRCodeComponent } from 'angularx-qrcode';
         [colorLight]="colorLight"
         [margin]="margin"
         [errorCorrectionLevel]="errorCorrectionLevel"
+        [elementType]="'svg'"
         class="qr-element"
         (qrCodeURL)="onQrCodeGenerated()">
       </qrcode>
@@ -67,16 +68,28 @@ export class QrWithLogoComponent implements OnChanges, AfterViewInit {
   @Input() logoUrl: string | null = null;
   @Input() showLogo: boolean = false;
   @Input() logoSize: number = 60;
+
+  // Gradient styling inputs
+  @Input() gradientEnabled: boolean = false;
+  @Input() gradientFrom: string = '#667eea';
+  @Input() gradientTo: string = '#764ba2';
+  @Input() gradientAngle: number = 45;
   
   @ViewChild('qrcode') qrcodeComponent!: QRCodeComponent;
   @ViewChild('qrCanvas') canvasRef!: ElementRef<HTMLCanvasElement>;
   
   private qrCodeGenerated = false;
+  private lastGradientId: string | null = null;
   
   ngAfterViewInit() {
     // Wait for QR code to be generated
-    if (this.qrdata && this.showLogo && this.logoUrl) {
-      setTimeout(() => this.renderQrWithLogo(), 300);
+    if (this.qrdata) {
+      setTimeout(() => {
+        this.applySvgGradient();
+        if (this.showLogo && this.logoUrl) {
+          this.renderQrWithLogo();
+        }
+      }, 300);
     }
   }
   
@@ -84,22 +97,115 @@ export class QrWithLogoComponent implements OnChanges, AfterViewInit {
     // When inputs change, re-render
     if (changes['qrdata'] || changes['showLogo'] || changes['logoUrl'] || 
         changes['logoSize'] || changes['size'] || changes['colorDark'] || 
-        changes['colorLight'] || changes['errorCorrectionLevel']) {
-      
-      // If the QR data changes, we need to wait for the QR component to generate
-      // Otherwise, we can just re-render the logo
-      if (changes['qrdata'] || !this.qrCodeGenerated) {
-        // Will be handled by the onQrCodeGenerated method
-      } else {
-        setTimeout(() => this.renderQrWithLogo(), 300);
+        changes['colorLight'] || changes['errorCorrectionLevel'] ||
+        changes['gradientEnabled'] || changes['gradientFrom'] || changes['gradientTo'] || changes['gradientAngle']) {
+      if (this.qrCodeGenerated) {
+        // Re-apply gradient to current SVG
+        setTimeout(() => this.applySvgGradient(), 0);
+        // Re-render logo overlay if present
+        if (this.showLogo && this.logoUrl) {
+          setTimeout(() => this.renderQrWithLogo(), 300);
+        }
       }
     }
   }
   
   onQrCodeGenerated() {
     this.qrCodeGenerated = true;
+    // Apply gradient after QR is rendered
+    this.applySvgGradient();
     if (this.showLogo && this.logoUrl) {
       this.renderQrWithLogo();
+    }
+  }
+
+  private getSvgElement(): SVGElement | null {
+    if (this.qrcodeComponent && this.qrcodeComponent.qrcElement) {
+      const el = this.qrcodeComponent.qrcElement.nativeElement as HTMLElement;
+      return el.querySelector('svg');
+    }
+    return null;
+  }
+
+  private applySvgGradient(): void {
+    const svg = this.getSvgElement();
+    if (!svg) return;
+
+    // If disabled, clear any existing gradient and restore dark fills only
+    if (!this.gradientEnabled) {
+      this.clearSvgGradient(svg);
+      return;
+    }
+
+    // Ensure a defs element exists
+    let defs = svg.querySelector('defs');
+    if (!defs) {
+      defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
+      svg.insertBefore(defs, svg.firstChild);
+    }
+
+    // Remove previous gradient if exists
+    if (this.lastGradientId) {
+      const old = svg.querySelector(`#${this.lastGradientId}`);
+      old?.parentElement?.removeChild(old);
+    }
+
+    // Create a unique gradient id
+    const gradId = `qr-grad-${Date.now()}`;
+    this.lastGradientId = gradId;
+
+    const grad = document.createElementNS('http://www.w3.org/2000/svg', 'linearGradient');
+    grad.setAttribute('id', gradId);
+    grad.setAttribute('gradientUnits', 'objectBoundingBox');
+
+    // Compute endpoints from angle
+    const theta = (this.gradientAngle % 360) * Math.PI / 180;
+    const x1 = 0.5 - 0.5 * Math.cos(theta);
+    const y1 = 0.5 - 0.5 * Math.sin(theta);
+    const x2 = 0.5 + 0.5 * Math.cos(theta);
+    const y2 = 0.5 + 0.5 * Math.sin(theta);
+    grad.setAttribute('x1', `${x1}`);
+    grad.setAttribute('y1', `${y1}`);
+    grad.setAttribute('x2', `${x2}`);
+    grad.setAttribute('y2', `${y2}`);
+
+    const stop1 = document.createElementNS('http://www.w3.org/2000/svg', 'stop');
+    stop1.setAttribute('offset', '0%');
+    stop1.setAttribute('stop-color', this.gradientFrom);
+
+    const stop2 = document.createElementNS('http://www.w3.org/2000/svg', 'stop');
+    stop2.setAttribute('offset', '100%');
+    stop2.setAttribute('stop-color', this.gradientTo);
+
+    grad.appendChild(stop1);
+    grad.appendChild(stop2);
+
+    defs.appendChild(grad);
+
+    // Apply gradient fill ONLY to modules that are using the dark color now
+    const dark = (this.colorDark || '').toLowerCase();
+    const candidates = Array.from(svg.querySelectorAll('path')) as SVGPathElement[];
+    candidates
+      .filter(p => {
+        const f = (p.getAttribute('fill') || '').toLowerCase();
+        return f === dark || f === '#000' || f === '#000000' || f === 'black';
+      })
+      .forEach(p => p.setAttribute('fill', `url(#${gradId})`));
+  }
+
+  private clearSvgGradient(svg?: SVGElement): void {
+    const el = svg || this.getSvgElement();
+    if (!el) return;
+
+    // Restore only elements that used our gradient back to colorDark
+    const gradSelector = this.lastGradientId ? `path[fill="url(#${this.lastGradientId})"]` : 'path[fill^="url(#qr-grad-"]';
+    const toRestore = el.querySelectorAll(gradSelector);
+    toRestore.forEach(p => (p as SVGPathElement).setAttribute('fill', this.colorDark));
+
+    if (this.lastGradientId) {
+      const old = el.querySelector(`#${this.lastGradientId}`);
+      old?.parentElement?.removeChild(old);
+      this.lastGradientId = null;
     }
   }
   
@@ -119,99 +225,53 @@ export class QrWithLogoComponent implements OnChanges, AfterViewInit {
     // Clear canvas
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     
-    // Try to find the QR code SVG or Canvas using multiple approaches
-    let qrElement = null;
-    
-    // 1. First try using the component reference (most reliable)
-    if (this.qrcodeComponent && this.qrcodeComponent.qrcElement) {
-      if (this.qrcodeComponent.elementType === 'canvas') {
-        qrElement = this.qrcodeComponent.qrcElement.nativeElement.querySelector('canvas');
-      } else if (this.qrcodeComponent.elementType === 'svg') {
-        qrElement = this.qrcodeComponent.qrcElement.nativeElement.querySelector('svg');
-      }
-    }
-    
-    // 2. Try searching by class inside this component's DOM tree
-    if (!qrElement && this.qrcodeComponent) {
-      const el = this.qrcodeComponent.qrcElement.nativeElement;
-      qrElement = el.querySelector('.qr-element svg') || el.querySelector('.qr-element canvas');
-    }
-    
-    // 3. Fall back to searching in the entire DOM with more specific selectors
+    // Try to find the QR code SVG using the component reference
+    const qrElement = this.getSvgElement();
     if (!qrElement) {
-      qrElement = document.querySelector('app-qr-with-logo .qr-element svg') || 
-                  document.querySelector('app-qr-with-logo .qr-element canvas');
-    }
-    
-    // 4. Last resort - any QR element in the DOM
-    if (!qrElement) {
-      qrElement = document.querySelector('.qr-element svg') || 
-                  document.querySelector('.qr-element canvas');
-    }
-    
-    if (!qrElement) {
-      console.error('QR code element not found after multiple attempts');
+      console.error('QR code SVG element not found');
       return;
     }
     
     // Draw the QR code to canvas
     const image = new Image();
-    
-    if (qrElement instanceof SVGElement) {
-      // Convert SVG to data URL
-      const svgData = new XMLSerializer().serializeToString(qrElement);
-      const svgBlob = new Blob([svgData], { type: 'image/svg+xml' });
-      image.src = URL.createObjectURL(svgBlob);
-    } else if (qrElement instanceof HTMLCanvasElement) {
-      image.src = qrElement.toDataURL();
-    } else {
-      console.error('Unknown QR code element type');
-      return;
-    }
+    const svgData = new XMLSerializer().serializeToString(qrElement);
+    const svgBlob = new Blob([svgData], { type: 'image/svg+xml' });
+    const url = URL.createObjectURL(svgBlob);
+    image.src = url;
     
     image.onload = () => {
-      // Draw QR code
+      // Draw QR code (with any gradient applied)
       ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
       
       // Add logo if provided
       if (this.logoUrl) {
         const logoImg = new Image();
         logoImg.onload = () => {
-          // Calculate logo position and size - ensure logo size is not too large
-          // Maximum logo size should be smaller to improve readability
           const qrSize = Math.min(canvas.width, canvas.height);
-          // Limit logo size to at most 20% of QR code size for better readability
           const calculatedLogoSize = this.logoSize ? Math.min(this.logoSize, qrSize * 0.2) : qrSize * 0.15;
-          // Ensure logo size isn't too large for the QR code
           const finalLogoSize = Math.min(calculatedLogoSize, qrSize * 0.2);
           const logoX = (canvas.width - finalLogoSize) / 2;
           const logoY = (canvas.height - finalLogoSize) / 2;
           
-          // Draw white background for logo with generous padding for better readability
           ctx.save();
           ctx.beginPath();
-          // Increase padding to improve scannability - at least 10px or 15% of logo size
           const padding = Math.max(10, finalLogoSize * 0.15);
           ctx.arc(logoX + finalLogoSize / 2, logoY + finalLogoSize / 2, (finalLogoSize / 2) + padding, 0, Math.PI * 2);
           ctx.fillStyle = '#ffffff';
           ctx.fill();
           
-          // Create a rounded clip path for the logo
           ctx.beginPath();
           ctx.arc(logoX + finalLogoSize / 2, logoY + finalLogoSize / 2, finalLogoSize / 2, 0, Math.PI * 2);
           ctx.clip();
           
-          // Draw logo
           ctx.drawImage(logoImg, logoX, logoY, finalLogoSize, finalLogoSize);
           ctx.restore();
           
-          // Clean up SVG blob if it exists
-          if (qrElement instanceof SVGElement) {
-            URL.revokeObjectURL(image.src);
-          }
+          URL.revokeObjectURL(url);
         };
-        
         logoImg.src = this.logoUrl;
+      } else {
+        URL.revokeObjectURL(url);
       }
     };
   }
@@ -219,11 +279,10 @@ export class QrWithLogoComponent implements OnChanges, AfterViewInit {
   // Public method that can be called externally to ensure logo is rendered
   public refreshLogoRendering(): Promise<boolean> {
     return new Promise((resolve) => {
+      // Ensure gradient is applied before capturing
+      this.applySvgGradient();
       if (this.showLogo && this.logoUrl) {
-        // Re-render the logo with optimized size
         this.renderQrWithLogo();
-        
-        // Give it time to render
         setTimeout(() => {
           resolve(true);
         }, 300);
@@ -242,15 +301,10 @@ export class QrWithLogoComponent implements OnChanges, AfterViewInit {
       return {readable: true, recommendations: 'No logo present.'};
     }
     
-    // Get QR code size
     const qrSize = this.size;
-    // Calculate what percentage of QR the logo is taking
     const logoPercentage = (this.logoSize / qrSize) * 100;
-    
-    // Check if we're using high error correction
     const usingHighErrorCorrection = this.errorCorrectionLevel === 'H';
     
-    // Assessment logic
     if (!usingHighErrorCorrection) {
       return {
         readable: false, 

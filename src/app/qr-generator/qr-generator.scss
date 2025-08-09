@@ -16,10 +16,10 @@ $gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
 
   .header-section {
     text-align: center;
-    margin-bottom: 3rem;
+    margin-bottom: 1.5rem; // reduced from 3rem
     background: $gradient;
-    padding: 3rem 2rem;
-    border-radius: 24px;
+    padding: 1.5rem 1.25rem; // reduced from 3rem 2rem
+    border-radius: 20px; // slightly smaller
     color: white;
     position: relative;
     overflow: hidden;
@@ -35,9 +35,9 @@ $gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     }
 
     h1 {
-      font-size: 3rem;
+      font-size: 2rem; // reduced from 3rem
       font-weight: 800;
-      margin-bottom: 1rem;
+      margin-bottom: 0.5rem; // reduced from 1rem
       background: linear-gradient(45deg, #fff, #f0f0f0);
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
@@ -47,9 +47,9 @@ $gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     }
 
     .description {
-      font-size: 1.2rem;
+      font-size: 1rem; // reduced from 1.2rem
       opacity: 0.9;
-      max-width: 600px;
+      max-width: 560px; // slightly narrower
       margin: 0 auto;
       position: relative;
       z-index: 1;
@@ -746,10 +746,14 @@ $gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
 @media (max-width: 768px) {
   .qr-generator {
     .header-section {
-      padding: 2rem 1rem;
+      padding: 1rem; // reduced further on mobile
       
       h1 {
-        font-size: 2rem;
+        font-size: 1.5rem; // reduced from 2rem
+      }
+
+      .description {
+        font-size: 0.95rem;
       }
     }
 
