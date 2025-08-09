@@ -153,6 +153,37 @@ export class BarcodeGeneratorComponent implements OnInit {
     const { format, value, displayValue, width, height, margin } = this.form.value;
     if (!value || this.form.invalid) { this.hasOutput = false; return; }
 
+    // Pre-validation for selected symbology
+    const v = String(value).replace(/\s+/g, '');
+    const onlyDigits = /^\d+$/;
+    const luhn = (digits: string) => {
+      let sum = 0; let alt = false;
+      for (let i = digits.length - 1; i >= 0; i--) {
+        let n = parseInt(digits[i], 10);
+        if (alt) { n *= 3; }
+        sum += n; alt = !alt;
+      }
+      return sum % 10 === 0;
+    };
+    const setErr = (msg: string) => { this.errorMessage = msg; this.hasOutput = false; };
+
+    if (format === 'EAN13') {
+      if (!onlyDigits.test(v) || (v.length !== 12 && v.length !== 13)) {
+        setErr('EAN-13 must be 12 or 13 digits.'); return;
+      }
+      if (v.length === 13 && !luhn(v)) { setErr('Invalid EAN-13 check digit.'); return; }
+    }
+    if (format === 'UPC') {
+      if (!onlyDigits.test(v) || (v.length !== 11 && v.length !== 12)) {
+        setErr('UPC-A must be 11 or 12 digits.'); return;
+      }
+    }
+    if (format === 'ITF14') {
+      if (!onlyDigits.test(v) || (v.length !== 13 && v.length !== 14)) {
+        setErr('ITF-14 must be 13 or 14 digits.'); return;
+      }
+    }
+
     try {
       JsBarcode(svg, value, {
         format,

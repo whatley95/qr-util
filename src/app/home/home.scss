@@ -6,7 +6,7 @@
 
 .hero {
   text-align: center;
-  padding: 4rem 1rem 5rem;
+  padding: 3rem 1rem 3.5rem; // tighter hero padding
   position: relative;
   overflow: hidden;
   
@@ -37,7 +37,7 @@
   }
   
   h1 {
-    font-size: 3rem;
+    font-size: 2.25rem; // smaller headline
     margin-bottom: 1rem;
     font-weight: 800;
     letter-spacing: -1px;
@@ -48,81 +48,35 @@
     background-clip: text;
     
     @media (min-width: 768px) {
-      font-size: 3.75rem;
+      font-size: 3rem; // smaller on desktop too
     }
   }
   
   p {
-    font-size: 1.35rem;
+    font-size: 1.1rem; // smaller subtitle
     color: #5f6368;
-    margin-bottom: 4.5rem;
+    margin-bottom: 2rem; // less space before CTAs
     max-width: 700px;
     margin-left: auto;
     margin-right: auto;
     line-height: 1.6;
     font-weight: 400;
   }
-  
+
   .cta-buttons {
     display: flex;
     justify-content: center;
     gap: 1rem;
-    margin-bottom: 2rem;
+    margin-bottom: 1.25rem; // tighter spacing below CTAs
     flex-wrap: wrap;
   }
-  .action-btn {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.6rem;
-    padding: 0.9rem 1.4rem;
-    min-height: 46px;
-    border-radius: 9999px; // pill shape
-    cursor: pointer;
-    text-decoration: none;
-    font-weight: 700;
-    letter-spacing: 0.3px;
-    border: 1px solid rgba(255,255,255,0.12);
-    transform: translateZ(0);
-    will-change: transform;
-    transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
- 
-    .btn-icon {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      width: 28px;
-      height: 28px;
-      border-radius: 9999px;
-      background: rgba(255, 255, 255, 0.15);
-      box-shadow: inset 0 0 0 1px rgba(255,255,255,0.15);
-      svg { width: 18px; height: 18px; }
-    }
- 
-    &:hover { transform: translateY(-2px); }
-    &:active { transform: translateY(0); }
-    &:focus-visible { outline: none; box-shadow: 0 0 0 3px rgba(14,165,233,0.35), 0 8px 20px rgba(2,6,23,0.2); }
-   }
-  .action-btn.primary {
-    background: linear-gradient(135deg, #1a73e8, #0d47a1);
-    box-shadow: 0 8px 20px rgba(26, 115, 232, 0.35);
-    color: #fff;
-    border-color: rgba(26, 115, 232, 0.45);
-    &:hover { box-shadow: 0 12px 28px rgba(26,115,232,0.45); }
-   }
-   .action-btn.secondary {
-     background: #111827;
-     color: #fff;
-     box-shadow: 0 8px 20px rgba(17, 24, 39, 0.25);
-     border-color: rgba(17, 24, 39, 0.45);
-     &:hover { box-shadow: 0 12px 28px rgba(17,24,39,0.35); }
-   }
 }
 
 .features {
   display: grid;
   grid-template-columns: 1fr;
   gap: 1.5rem;
-  margin-top: 2.5rem;
+  margin-top: 1.75rem; // reduce gap below hero
   
   @media (min-width: 768px) {
     grid-template-columns: repeat(3, 1fr);
@@ -195,26 +149,17 @@
    .action-btn {
      display: inline-block;
      padding: 0.85rem 1.6rem;
-     background-color: #1a73e8;
-     color: white;
+     min-height: 44px;
      border-radius: 12px;
+     cursor: pointer;
      text-decoration: none;
-     font-weight: 600;
-     transition: all 0.3s ease;
-     box-shadow: 0 8px 20px rgba(26, 115, 232, 0.25);
-     font-size: 1.05rem;
-     letter-spacing: 0.5px;
-     
-     &:hover {
-      background-color: #0d47a1;
-      box-shadow: 0 10px 25px rgba(26, 115, 232, 0.35);
-      transform: translateY(-3px);
-     }
-     
-     &:active {
-       transform: translateY(-1px);
-       box-shadow: 0 4px 12px rgba(26, 115, 232, 0.25);
-     }
+     font-weight: 700;
+     letter-spacing: 0.3px;
+     border: 1px solid rgba(255,255,255,0.12);
+     transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+     &:hover { transform: translateY(-2px); }
+     &:active { transform: translateY(0); }
+     &:focus-visible { outline: none; box-shadow: 0 0 0 3px rgba(14,165,233,0.3); }
    }
  }
  

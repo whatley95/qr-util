@@ -21,6 +21,8 @@ export class QrScanner implements AfterViewInit, OnDestroy {
   previewImageUrl: string | null = null;
   isDragging = false;
   isMobileDevice = false; // New property to detect mobile devices
+  scanError: string | null = null;
+  copyNotice: string | null = null;
   
   // QR code scan result
   scanResult: string | null = null;
@@ -361,7 +363,13 @@ export class QrScanner implements AfterViewInit, OnDestroy {
   }
   
   processFile(file: File): void {
+    this.scanError = null;
+    this.copyNotice = null;
     this.selectedFile = file;
+    // Guard: very large images can cause memory spikes; warn if >10MB
+    if (file.size > 10 * 1024 * 1024) {
+      this.scanError = 'Large image detected (>10MB). Decoding may be slow. Consider a smaller image.';
+    }
     
     // Revoke previous URL if exists
     if (this.previewImageUrl) {
@@ -413,6 +421,8 @@ export class QrScanner implements AfterViewInit, OnDestroy {
       return;
     }
     
+    this.scanError = null;
+    this.copyNotice = null;
     const img = this.previewImage.nativeElement;
     const canvas = document.createElement('canvas');
     const ctx = canvas.getContext('2d');
@@ -446,19 +456,23 @@ export class QrScanner implements AfterViewInit, OnDestroy {
             .then((result: any) => {
               const text = result?.getText ? result.getText() : '';
               const format = result?.getBarcodeFormat ? String(result.getBarcodeFormat()) : undefined;
-              this.handleScanResult(text, format);
+              if (text) {
+                this.handleScanResult(text, format);
+              } else {
+                this.scanError = 'No QR/Barcode found. Try a clearer image.';
+              }
             })
             .catch(() => {
-              alert('No QR/Barcode found in the image. Try a different image or ensure it is clearly visible.');
+              this.scanError = 'No QR/Barcode found. Try a clearer image.';
             });
         } catch (zxingError) {
           console.error('ZXing error:', zxingError);
-          alert('No QR/Barcode found in the image.');
+          this.scanError = 'No QR/Barcode found in the image.';
         }
       }
     } catch (error) {
       console.error('Error scanning image:', error);
-      alert('Error scanning the image. The image might be too large or from an external source.');
+      this.scanError = 'Error scanning image. It might be too large or unsupported.';
     }
   }
   
@@ -537,7 +551,8 @@ export class QrScanner implements AfterViewInit, OnDestroy {
     if (this.scanResult) {
       navigator.clipboard.writeText(this.scanResult)
         .then(() => {
-          alert('Copied to clipboard!');
+          this.copyNotice = 'Copied to clipboard.';
+          setTimeout(() => this.copyNotice = null, 2000);
         })
         .catch(err => {
           console.error('Could not copy text: ', err);

@@ -1,276 +1,191 @@
 <div class="qr-scanner">
   <h1>Scan QR / Barcode</h1>
-  <p class="description">Upload an image or use your camera to scan QR codes and 1D barcodes.</p>
+  <p class="description">Upload an image to scan QR codes and 1D barcodes. Auto-detects format.</p>
 
   <div class="scan-options">
-    <div class="option-toggle">
-      <button class="toggle-btn active" (click)="setScanOption('file')">
-        <i class="file-icon"></i>
-        Upload Image
-      </button>
-    </div>
 
-    <div class="scan-container">
-      <!-- Camera scanning hidden per request -->
-      <div *ngIf="false"></div>
+     <div class="scan-container">
+       <!-- Camera scanning hidden per request -->
+       <div *ngIf="false"></div>
 
-      <!-- Vertical layout with file upload first, then results in a new row -->
-      <div class="vertical-layout-container" *ngIf="scanOption === 'file'">
-        <!-- File upload section: hide the whole section when a file is selected to avoid extra grid row -->
-        <div class="file-upload-section" *ngIf="!selectedFile">
-          <div class="file-drop-area" 
-               (dragover)="onDragOver($event)" 
-               (dragleave)="onDragLeave($event)" 
-               (drop)="onFileDrop($event)"
-               [class.drag-over]="isDragging">
+       <!-- Vertical layout with file upload first, then results in a new row -->
+       <div class="vertical-layout-container" *ngIf="scanOption === 'file'">
+         <!-- File upload section: hide the whole section when a file is selected to avoid extra grid row -->
+         <div class="file-upload-section" *ngIf="!selectedFile">
+          <div class="file-drop-area" role="button" tabindex="0"
+                (dragover)="onDragOver($event)" 
+                (dragleave)="onDragLeave($event)" 
+                (drop)="onFileDrop($event)"
+               [class.drag-over]="isDragging"
+               (keydown.enter)="fileInput.click()"
+               (keydown.space)="fileInput.click()"
+               (click)="fileInput.click()">
             
-            <div class="upload-icon">
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-              </svg>
-            </div>
-            
-            <p>Drag and drop a QR or barcode image or</p>
-            <label class="file-input-label">
-              Browse Files
-              <input type="file" 
-                     accept="image/*" 
+             <div class="upload-icon">
+               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+               </svg>
+             </div>
+             
+             <p>Drag and drop a QR or barcode image or</p>
+             <label class="file-input-label">
+               Browse Files
+               <input type="file" 
+                      accept="image/*" 
                      (change)="onFileSelected($event)" 
-                     class="file-input">
-            </label>
-            <p class="file-formats">Supports JPG, PNG, GIF, BMP</p>
-          </div>
-        </div>
+                     #fileInput
+                      class="file-input">
+             </label>
+             <p class="file-formats">Supports JPG, PNG, GIF, BMP</p>
+           </div>
+         </div>
 
-        <!-- Uploaded QR Code Section (New Row) -->
-        <div *ngIf="selectedFile" class="uploaded-qr-section">
-          <h3>Uploaded Image</h3>
-          
-          <div class="uploaded-qr-container">
-            <!-- QR Preview -->
-            <div class="qr-preview-container">
-              <img #previewImage [src]="previewImageUrl" alt="QR code preview" (load)="onPreviewLoaded()">
-              
-              <div class="file-actions">
-                <button (click)="scanSelectedImage()" class="scan-btn">
-                  Re-Scan
-                </button>
-                <button (click)="clearSelectedFile()" class="clear-file-btn">
-                  Clear
-                </button>
-              </div>
+         <!-- Uploaded QR Code Section (New Row) -->
+         <div *ngIf="selectedFile" class="uploaded-qr-section">
+           <h3>Uploaded Image</h3>
+           
+           <div class="uploaded-qr-container">
+             <!-- QR Preview -->
+             <div class="qr-preview-container">
+               <img #previewImage [src]="previewImageUrl" alt="QR code preview" (load)="onPreviewLoaded()">
+               
+               <div class="file-actions">
+                <button (click)="scanSelectedImage()" class="scan-btn" aria-label="Re-scan uploaded image">
+                   Re-Scan
+                 </button>
+                <button (click)="clearSelectedFile()" class="clear-file-btn" aria-label="Clear uploaded image">
+                   Clear
+                 </button>
+               </div>
 
-              <!-- Removed inline file info to move it below both columns -->
-              
-            </div>
-            
-          </div>
-        </div>
+               <!-- Removed inline file info to move it below both columns -->
+               
+             </div>
+             
+           </div>
+         </div>
 
-        <!-- Results display section -->
-        <div class="results-section" [class.with-uploaded-qr]="selectedFile">
-          <h3>Scan Results</h3>
-          
-          <div *ngIf="!scanResult" class="empty-result-container">
-            <div class="empty-result-icon">
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-            </div>
-            <p>Scan results will appear here</p>
-          </div>
-          
-          <div *ngIf="scanResult" class="result-container">
-            <div class="result-type">
-              {{ scanResultType }}
-              <span *ngIf="scanFormat" class="format-chip">{{ scanFormat }}</span>
-            </div>
-            
-            <div class="result-content">
-              <p *ngIf="scanResultType === 'URL'">
-                <a [href]="scanResult" target="_blank" rel="noopener noreferrer">{{ scanResult }}</a>
-                <button class="open-btn" (click)="openResult()">Open</button>
-              </p>
-              <p *ngIf="scanResultType === 'Text'">{{ scanResult }}</p>
-              <p *ngIf="scanResultType === 'Email'">
-                <a [href]="'mailto:' + getEmailAddress()">{{ getEmailAddress() }}</a>
-                <ng-container *ngIf="getEmailSubject()">
-                  <br><span class="label">Subject:</span> {{ getEmailSubject() }}
-                </ng-container>
-                <ng-container *ngIf="getEmailBody()">
-                  <br><span class="label">Body:</span> {{ getEmailBody() }}
-                </ng-container>
-              </p>
-              <p *ngIf="scanResultType === 'Phone'">
-                <a [href]="'tel:' + getPhoneNumber()">{{ getPhoneNumber() }}</a>
-              </p>
-              <p *ngIf="scanResultType === 'SMS'">
-                <a [href]="scanResult">{{ getSmsNumber() }}</a>
-                <ng-container *ngIf="getSmsMessage()">
-                  <br><span class="label">Message:</span> {{ getSmsMessage() }}
-                </ng-container>
-              </p>
-              <p *ngIf="scanResultType === 'WiFi'">
-                <span class="label">Network:</span> {{ getWifiSsid() }}<br>
-                <span class="label">Type:</span> {{ getWifiEncryption() }}<br>
-                <ng-container *ngIf="getWifiPassword()">
-                  <span class="label">Password:</span> {{ getWifiPassword() }}
-                </ng-container>
-              </p>
-              <div *ngIf="scanResultType === 'vCard'" class="vcard-result">
-                <p><span class="label">Name:</span> {{ getVCardName() }}</p>
-                <ng-container *ngIf="getVCardPhone()">
-                  <p><span class="label">Phone:</span> 
-                    <a [href]="'tel:' + getVCardPhone()">{{ getVCardPhone() }}</a>
-                  </p>
-                </ng-container>
-                <ng-container *ngIf="getVCardEmail()">
-                  <p><span class="label">Email:</span> 
-                    <a [href]="'mailto:' + getVCardEmail()">{{ getVCardEmail() }}</a>
-                  </p>
-                </ng-container>
-                <ng-container *ngIf="getVCardOrganization()">
-                  <p><span class="label">Organization:</span> {{ getVCardOrganization() }}</p>
-                </ng-container>
-                <ng-container *ngIf="getVCardTitle()">
-                  <p><span class="label">Title:</span> {{ getVCardTitle() }}</p>
-                </ng-container>
-                <ng-container *ngIf="getVCardUrl()">
-                  <p><span class="label">URL:</span> 
-                    <a [href]="getVCardUrl()" target="_blank">{{ getVCardUrl() }}</a>
-                  </p>
-                </ng-container>
-                <ng-container *ngIf="getVCardAddress()">
-                  <p><span class="label">Address:</span> {{ getVCardAddress() }}</p>
-                </ng-container>
-              </div>
+         <!-- Results display section -->
+         <div class="results-section" [class.with-uploaded-qr]="selectedFile">
+           <h3>Scan Results</h3>
+           
+           <div *ngIf="!scanResult" class="empty-result-container">
+             <div class="empty-result-icon">
+               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+               </svg>
+             </div>
+             <p>Scan results will appear here</p>
+            <p *ngIf="scanError" class="inline-notice error">{{ scanError }}</p>
+           </div>
+           
+           <div *ngIf="scanResult" class="result-container">
+             <div class="result-type">
+               {{ scanResultType }}
+               <span *ngIf="scanFormat" class="format-chip">{{ scanFormat }}</span>
+             </div>
+             
+             <div class="result-content">
+               <p *ngIf="scanResultType === 'URL'">
+                 <a [href]="scanResult" target="_blank" rel="noopener noreferrer">{{ scanResult }}</a>
+                <button class="open-btn" (click)="openResult()" aria-label="Open link in new tab">Open</button>
+               </p>
+               <p *ngIf="scanResultType === 'Text'">{{ scanResult }}</p>
+               <p *ngIf="scanResultType === 'Email'">
+                 <a [href]="'mailto:' + getEmailAddress()">{{ getEmailAddress() }}</a>
+                 <ng-container *ngIf="getEmailSubject()">
+                   <br><span class="label">Subject:</span> {{ getEmailSubject() }}
+                 </ng-container>
+                 <ng-container *ngIf="getEmailBody()">
+                   <br><span class="label">Body:</span> {{ getEmailBody() }}
+                 </ng-container>
+               </p>
+               <p *ngIf="scanResultType === 'Phone'">
+                 <a [href]="'tel:' + getPhoneNumber()">{{ getPhoneNumber() }}</a>
+               </p>
+               <p *ngIf="scanResultType === 'SMS'">
+                 <a [href]="scanResult">{{ getSmsNumber() }}</a>
+                 <ng-container *ngIf="getSmsMessage()">
+                   <br><span class="label">Message:</span> {{ getSmsMessage() }}
+                 </ng-container>
+               </p>
+               <p *ngIf="scanResultType === 'WiFi'">
+                 <span class="label">Network:</span> {{ getWifiSsid() }}<br>
+                 <span class="label">Type:</span> {{ getWifiEncryption() }}<br>
+                 <ng-container *ngIf="getWifiPassword()">
+                   <span class="label">Password:</span> {{ getWifiPassword() }}
+                 </ng-container>
+               </p>
+               <div *ngIf="scanResultType === 'vCard'" class="vcard-result">
+                 <p><span class="label">Name:</span> {{ getVCardName() }}</p>
+                 <ng-container *ngIf="getVCardPhone()">
+                   <p><span class="label">Phone:</span> 
+                     <a [href]="'tel:' + getVCardPhone()">{{ getVCardPhone() }}</a>
+                   </p>
+                 </ng-container>
+                 <ng-container *ngIf="getVCardEmail()">
+                   <p><span class="label">Email:</span> 
+                     <a [href]="'mailto:' + getVCardEmail()">{{ getVCardEmail() }}</a>
+                   </p>
+                 </ng-container>
+                 <ng-container *ngIf="getVCardOrganization()">
+                   <p><span class="label">Organization:</span> {{ getVCardOrganization() }}</p>
+                 </ng-container>
+                 <ng-container *ngIf="getVCardTitle()">
+                   <p><span class="label">Title:</span> {{ getVCardTitle() }}</p>
+                 </ng-container>
+                 <ng-container *ngIf="getVCardUrl()">
+                   <p><span class="label">URL:</span> 
+                     <a [href]="getVCardUrl()" target="_blank">{{ getVCardUrl() }}</a>
+                   </p>
+                 </ng-container>
+                 <ng-container *ngIf="getVCardAddress()">
+                   <p><span class="label">Address:</span> {{ getVCardAddress() }}</p>
+                 </ng-container>
+               </div>
 
-              <!-- Fallback: show raw content for Barcode or any other unhandled type -->
-              <p *ngIf="scanResult && scanResultType !== 'URL' && scanResultType !== 'Email' && scanResultType !== 'Phone' && scanResultType !== 'SMS' && scanResultType !== 'WiFi' && scanResultType !== 'vCard' && scanResultType !== 'Text'">
-                {{ scanResult }}
-              </p>
-            </div>
-            
-            <div class="result-actions">
-              <button (click)="copyToClipboard()" class="action-btn">
-                Copy to Clipboard
-              </button>
-              <button (click)="clearScanResult()" class="action-btn clear">
-                Clear
-              </button>
-            </div>
-          </div>
-        </div>
+               <!-- Fallback: show raw content for Barcode or any other unhandled type -->
+               <p *ngIf="scanResult && scanResultType !== 'URL' && scanResultType !== 'Email' && scanResultType !== 'Phone' && scanResultType !== 'SMS' && scanResultType !== 'WiFi' && scanResultType !== 'vCard' && scanResultType !== 'Text'">
+                 {{ scanResult }}
+               </p>
+             </div>
+             
+             <div class="result-actions">
+              <button (click)="copyToClipboard()" class="action-btn" aria-label="Copy result to clipboard">
+                 Copy to Clipboard
+               </button>
+              <button (click)="clearScanResult()" class="action-btn clear" aria-label="Clear scan result">
+                 Clear
+               </button>
+             </div>
++            <p *ngIf="copyNotice" class="inline-notice success">{{ copyNotice }}</p>
+           </div>
+         </div>
 
-        <!-- File Information moved below both side-by-side sections -->
-        <div *ngIf="selectedFile" class="qr-file-info">
-          <h4>File Information</h4>
-          <div class="info-item">
-            <span class="info-label">File name:</span>
-            <span class="info-value">{{ qrUploadInfo.fileName }}</span>
-          </div>
-          <div class="info-item">
-            <span class="info-label">File size:</span>
-            <span class="info-value">{{ qrUploadInfo.fileSize }}</span>
-          </div>
-          <div class="info-item">
-            <span class="info-label">File type:</span>
-            <span class="info-value">{{ qrUploadInfo.fileType }}</span>
-          </div>
-          <div class="info-item">
-            <span class="info-label">Dimensions:</span>
-            <span class="info-value">{{ qrUploadInfo.dimensions }}</span>
-          </div>
-          <div class="info-item">
-            <span class="info-label">Upload time:</span>
-            <span class="info-value">{{ qrUploadInfo.uploadTime }}</span>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Mobile-only Results display -->
-  <div *ngIf="scanResult && isMobileDevice && scanOption === 'camera'" class="scan-results mobile-results">
-    <h2>Scan Result</h2>
-    
-    <div class="result-container">
-      <div class="result-type">
-        {{ scanResultType }}
-      </div>
-      
-      <div class="result-content">
-        <p *ngIf="scanResultType === 'URL'">
-          <a [href]="scanResult" target="_blank" rel="noopener noreferrer">{{ scanResult }}</a>
-        </p>
-        <p *ngIf="scanResultType === 'Text'">{{ scanResult }}</p>
-        <p *ngIf="scanResultType === 'Email'">
-          <a [href]="'mailto:' + getEmailAddress()">{{ getEmailAddress() }}</a>
-          <ng-container *ngIf="getEmailSubject()">
-            <br><span class="label">Subject:</span> {{ getEmailSubject() }}
-          </ng-container>
-          <ng-container *ngIf="getEmailBody()">
-            <br><span class="label">Body:</span> {{ getEmailBody() }}
-          </ng-container>
-        </p>
-        <p *ngIf="scanResultType === 'Phone'">
-          <a [href]="'tel:' + getPhoneNumber()">{{ getPhoneNumber() }}</a>
-        </p>
-        <p *ngIf="scanResultType === 'SMS'">
-          <a [href]="scanResult">{{ getSmsNumber() }}</a>
-          <ng-container *ngIf="getSmsMessage()">
-            <br><span class="label">Message:</span> {{ getSmsMessage() }}
-          </ng-container>
-        </p>
-        <p *ngIf="scanResultType === 'WiFi'">
-          <span class="label">Network:</span> {{ getWifiSsid() }}<br>
-          <span class="label">Type:</span> {{ getWifiEncryption() }}<br>
-          <ng-container *ngIf="getWifiPassword()">
-            <span class="label">Password:</span> {{ getWifiPassword() }}
-          </ng-container>
-        </p>
-        <div *ngIf="scanResultType === 'vCard'" class="vcard-result">
-          <p><span class="label">Name:</span> {{ getVCardName() }}</p>
-          <ng-container *ngIf="getVCardPhone()">
-            <p><span class="label">Phone:</span> 
-              <a [href]="'tel:' + getVCardPhone()">{{ getVCardPhone() }}</a>
-            </p>
-          </ng-container>
-          <ng-container *ngIf="getVCardEmail()">
-            <p><span class="label">Email:</span> 
-              <a [href]="'mailto:' + getVCardEmail()">{{ getVCardEmail() }}</a>
-            </p>
-          </ng-container>
-          <ng-container *ngIf="getVCardOrganization()">
-            <p><span class="label">Organization:</span> {{ getVCardOrganization() }}</p>
-          </ng-container>
-          <ng-container *ngIf="getVCardTitle()">
-            <p><span class="label">Title:</span> {{ getVCardTitle() }}</p>
-          </ng-container>
-          <ng-container *ngIf="getVCardUrl()">
-            <p><span class="label">URL:</span> 
-              <a [href]="getVCardUrl()" target="_blank">{{ getVCardUrl() }}</a>
-            </p>
-          </ng-container>
-          <ng-container *ngIf="getVCardAddress()">
-            <p><span class="label">Address:</span> {{ getVCardAddress() }}</p>
-          </ng-container>
-        </div>
-
-        <!-- Fallback: show raw content for Barcode or any other unhandled type -->
-        <p *ngIf="scanResult && scanResultType !== 'URL' && scanResultType !== 'Email' && scanResultType !== 'Phone' && scanResultType !== 'SMS' && scanResultType !== 'WiFi' && scanResultType !== 'vCard' && scanResultType !== 'Text'">
-          {{ scanResult }}
-        </p>
-      </div>
-      
-      <div class="result-actions">
-        <button (click)="copyToClipboard()" class="action-btn">
-          Copy to Clipboard
-        </button>
-        <button (click)="clearScanResult()" class="action-btn clear">
-          Clear
-        </button>
-      </div>
-    </div>
-  </div>
-</div>
+         <!-- File Information moved below both side-by-side sections -->
+         <div *ngIf="selectedFile" class="qr-file-info">
+           <h4>File Information</h4>
+           <div class="info-item">
+             <span class="info-label">File name:</span>
+             <span class="info-value">{{ qrUploadInfo.fileName }}</span>
+           </div>
+           <div class="info-item">
+             <span class="info-label">File size:</span>
+             <span class="info-value">{{ qrUploadInfo.fileSize }}</span>
+           </div>
+           <div class="info-item">
+             <span class="info-label">File type:</span>
+             <span class="info-value">{{ qrUploadInfo.fileType }}</span>
+           </div>
+           <div class="info-item">
+             <span class="info-label">Dimensions:</span>
+             <span class="info-value">{{ qrUploadInfo.dimensions }}</span>
+           </div>
+           <div class="info-item">
+             <span class="info-label">Upload time:</span>
+             <span class="info-value">{{ qrUploadInfo.uploadTime }}</span>
+           </div>
+         </div>
+       </div>
+     </div>
+   </div>
