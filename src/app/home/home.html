@@ -1,20 +1,29 @@
 <div class="home-container">
   <div class="hero">
-    <h1>QR Code Utility</h1>
-    <p>A simple, powerful tool for all your QR code needs</p>
+    <h1>QR & Barcode Studio</h1>
+    <p>Generate, scan, and share — fast, privacy-friendly, and open source.</p>
     
-    <div class="features">
-      <div class="feature-card">
-        <div class="icon generate-icon">
+    <div class="cta-buttons">
+      <a routerLink="/generate" class="action-btn primary" aria-label="Generate QR">
+        <span class="btn-icon" aria-hidden="true">
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
           </svg>
-        </div>
-        <h3>Generate QR Codes</h3>
-        <p>Create QR codes for URLs, text, contact info, and more</p>
-        <a routerLink="/generate" class="action-btn">Generate Now</a>
-      </div>
-      
+        </span>
+        <span>Generate QR</span>
+      </a>
+      <a routerLink="/scan" class="action-btn secondary" aria-label="Scan QR or Barcode">
+        <span class="btn-icon" aria-hidden="true">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+          </svg>
+        </span>
+        <span>Scan Now</span>
+      </a>
+    </div>
+     
+     <div class="features">
       <div class="feature-card">
         <div class="icon scan-icon">
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -22,37 +31,59 @@
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
           </svg>
         </div>
-        <h3>Scan QR Codes</h3>
-        <p>Quickly scan QR codes using your camera or from image files</p>
+        <h3>Scan QR / Barcodes</h3>
+        <p>Auto-detect QR and 1D formats. Upload an image to scan instantly.</p>
         <a routerLink="/scan" class="action-btn">Scan Now</a>
       </div>
-    </div>
-  </div>
-  
-  <section class="usage-info">
-    <h2>How To Use</h2>
-    <div class="steps">
-      <div class="step">
-        <span class="step-number">1</span>
-        <div>
-          <h3>Choose Your Tool</h3>
-          <p>Select whether you want to generate or scan a QR code</p>
+
+      <div class="feature-card">
+        <div class="icon generate-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+          </svg>
         </div>
+        <h3>Generate QR Codes</h3>
+        <p>Logos, error correction, and crisp exports for print or web.</p>
+        <a routerLink="/generate" class="action-btn">Generate Now</a>
       </div>
-      <div class="step">
-        <span class="step-number">2</span>
-        <div>
-          <h3>Follow The Instructions</h3>
-          <p>Fill in the required information or allow camera access</p>
+      
+      <div class="feature-card">
+        <div class="icon generate-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M4 5h16v2H4V5zm0 4h10v2H4V9zm0 4h16v2H4v-2zm0 4h10v2H4v-2z"/>
+          </svg>
         </div>
+        <h3>Generate Barcodes</h3>
+        <p>CODE128, EAN, UPC, and more powered by JsBarcode.</p>
+        <a routerLink="/barcode/generate" class="action-btn">Generate Barcode</a>
       </div>
-      <div class="step">
-        <span class="step-number">3</span>
-        <div>
-          <h3>Get Results</h3>
-          <p>Download your QR code or view the scanned information</p>
-        </div>
-      </div>
-    </div>
-  </section>
-</div>
+     </div>
+   </div>
+   
+   <section class="usage-info">
+     <h2>How To Use</h2>
+     <div class="steps">
+       <div class="step">
+         <span class="step-number">1</span>
+         <div>
+           <h3>Choose Your Tool</h3>
+           <p>Select generate or scan. Both QR and 1D barcodes are supported.</p>
+         </div>
+       </div>
+       <div class="step">
+         <span class="step-number">2</span>
+         <div>
+           <h3>Upload or Configure</h3>
+           <p>Upload an image to scan, or choose content to generate.</p>
+         </div>
+       </div>
+       <div class="step">
+         <span class="step-number">3</span>
+         <div>
+           <h3>Get Results</h3>
+           <p>Download clean SVG/PNG or copy the scanned result in one click.</p>
+         </div>
+       </div>
+     </div>
+   </section>
+ </div>

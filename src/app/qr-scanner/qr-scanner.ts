@@ -1,12 +1,13 @@
 import { Component, ElementRef, OnDestroy, ViewChild, AfterViewInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import jsQR from 'jsqr';
 import { BrowserMultiFormatReader } from '@zxing/browser';
 
 @Component({
   selector: 'app-qr-scanner',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, FormsModule],
   templateUrl: './qr-scanner.html',
   styleUrl: './qr-scanner.scss'
 })
@@ -24,6 +25,15 @@ export class QrScanner implements AfterViewInit, OnDestroy {
   // QR code scan result
   scanResult: string | null = null;
   scanResultType = '';
+  // Add detected symbology/format (e.g., QR_CODE, CODE_128, EAN_13)
+  scanFormat: string | null = null;
+
+  // New UX/scan controls
+  autoStopOnResult = true;
+  torchOn = false;
+  torchAvailable = false;
+  private lastCameraText: string | null = null;
+  private audioCtx?: AudioContext;
   
   // Additional information about the uploaded QR code
   qrUploadInfo = {
@@ -36,9 +46,10 @@ export class QrScanner implements AfterViewInit, OnDestroy {
   
   private stream: MediaStream | null = null;
   private codeReader = new BrowserMultiFormatReader();
-  private videoDevices: MediaDeviceInfo[] = [];
-  private currentDeviceIndex = 0;
+  videoDevices: MediaDeviceInfo[] = [];
+  currentDeviceIndex = 0;
   private scanInterval: any;
+  cameraError: string | null = null;
   
   ngAfterViewInit(): void {
     this.detectMobileDevice();
@@ -53,9 +64,7 @@ export class QrScanner implements AfterViewInit, OnDestroy {
     this.isMobileDevice = mobileKeywords.some(keyword => userAgent.includes(keyword)) || window.innerWidth <= 991;
     
     // Default to file option on desktop, camera on mobile if available
-    if (!this.isMobileDevice) {
-      this.scanOption = 'file';
-    }
+    this.scanOption = this.isMobileDevice ? 'camera' : 'file';
     
     // Add resize listener to handle orientation changes or window resizing
     window.addEventListener('resize', () => {
@@ -90,11 +99,21 @@ export class QrScanner implements AfterViewInit, OnDestroy {
   
   async checkCameraAvailability(): Promise<void> {
     try {
-      const devices = await navigator.mediaDevices.enumerateDevices();
+      let devices = await navigator.mediaDevices.enumerateDevices();
       this.videoDevices = devices.filter(device => device.kind === 'videoinput');
+
+      // If no devices listed, request permission once to populate labels/devices
+      if (this.videoDevices.length === 0 && navigator.mediaDevices.getUserMedia) {
+        try {
+          const tmp = await navigator.mediaDevices.getUserMedia({ video: true });
+          tmp.getTracks().forEach(t => t.stop());
+          devices = await navigator.mediaDevices.enumerateDevices();
+          this.videoDevices = devices.filter(d => d.kind === 'videoinput');
+        } catch {}
+      }
       
       // Start camera automatically if devices are available and we're on camera option
-      if (this.videoDevices.length > 0 && this.scanOption === 'camera') {
+      if (this.scanOption === 'camera') {
         this.startCamera();
       }
     } catch (error) {
@@ -108,64 +127,155 @@ export class QrScanner implements AfterViewInit, OnDestroy {
     }
     
     try {
+      this.stopCamera();
+      this.torchOn = false;
+      this.torchAvailable = false;
+      this.lastCameraText = null;
+      this.cameraError = null;
+
+      // Ensure devices list is fresh
       if (this.videoDevices.length === 0) {
         await this.checkCameraAvailability();
       }
-      
-      if (this.videoDevices.length === 0) {
-        console.error('No camera devices found');
-        return;
-      }
-      
-      // Stop any existing stream
-      this.stopCamera();
-      
-      // Get camera device ID
-      const deviceId = this.videoDevices[this.currentDeviceIndex].deviceId;
-      
-      // Get stream
-      this.stream = await navigator.mediaDevices.getUserMedia({
-        video: { deviceId: { exact: deviceId } }
-      });
-      
-      // Connect stream to video element
-      this.videoElement.nativeElement.srcObject = this.stream;
-      this.videoElement.nativeElement.play();
-      
+
+      // Choose deviceId if available, otherwise let ZXing pick default/facingMode
+      const deviceId = this.videoDevices[this.currentDeviceIndex]?.deviceId;
+
+      // Start scanning; ZXing will attach the MediaStream to the video element
+      this.startZXingVideoScan(deviceId);
       this.isCameraReady = true;
-      
-      // Start scanning
-      this.startQRScanning();
-    } catch (error) {
+
+      // Torch capability (best-effort) after a tick
+      setTimeout(() => {
+        try {
+          const track = (this.videoElement!.nativeElement.srcObject as MediaStream | null)?.getVideoTracks?.()[0];
+          const caps: any = track && (track as any).getCapabilities?.();
+          this.torchAvailable = !!caps?.torch;
+        } catch {}
+      }, 300);
+    } catch (error: any) {
       console.error('Error starting camera:', error);
       this.isCameraReady = false;
+      this.cameraError = 'Cannot start camera. Check permissions, HTTPS, or device settings.';
+    }
+  }
+
+  // Use deviceId when provided, otherwise fallback to facingMode: environment
+  private startZXingVideoScan(deviceId?: string): void {
+    if (!this.videoElement) return;
+
+    const onResult = (result: any, err: any) => {
+      if (result) {
+        const text = result.getText ? result.getText() : String(result);
+        const format = result.getBarcodeFormat ? String(result.getBarcodeFormat()) : null;
+        if (text && text !== this.lastCameraText) {
+          this.lastCameraText = text;
+          this.handleScanResult(text, format || undefined);
+          this.playBeep();
+          if (this.autoStopOnResult) {
+            this.stopCamera();
+          }
+        }
+      }
+    };
+
+    const startWithDevice = () =>
+      this.codeReader.decodeFromVideoDevice(deviceId!, this.videoElement!.nativeElement, onResult)
+        .catch(err => {
+          console.error('ZXing video decode error (device):', err);
+          this.cameraError = 'Camera access failed. Try switching device or check permissions.';
+        });
+
+    const startWithConstraints = () =>
+      (this.codeReader as any).decodeFromConstraints?.({
+        video: { facingMode: { ideal: 'environment' } }
+      }, this.videoElement!.nativeElement, onResult)
+      .catch((err: any) => {
+        console.error('ZXing video decode error (constraints):', err);
+        this.cameraError = 'Camera access failed. Try switching device or check permissions.';
+      });
+
+    if (deviceId) {
+      startWithDevice();
+    } else if ((this.codeReader as any).decodeFromConstraints) {
+      startWithConstraints();
+    } else {
+      // Final fallback: let library choose default by passing undefined
+      this.codeReader.decodeFromVideoDevice(undefined, this.videoElement.nativeElement, onResult)
+        .catch(err => {
+          console.error('ZXing video decode error (default):', err);
+          this.cameraError = 'Camera access failed. Try switching device or check permissions.';
+        });
     }
   }
   
+  // Switch to the next available camera
+  async switchCamera(): Promise<void> {
+    if (!this.videoDevices || this.videoDevices.length <= 1) return;
+    this.currentDeviceIndex = (this.currentDeviceIndex + 1) % this.videoDevices.length;
+    await this.startCamera();
+  }
+
+  // Choose a specific camera by index
+  chooseDevice(index: number): void {
+    const i = Number(index);
+    if (!Number.isInteger(i) || i < 0 || i >= this.videoDevices.length) return;
+    this.currentDeviceIndex = i;
+    this.startCamera();
+  }
+
+  // Toggle device torch/flash if supported
+  toggleTorch(event: Event): void {
+    this.torchOn = (event.target as HTMLInputElement)?.checked ?? !this.torchOn;
+    try {
+      const stream = this.videoElement?.nativeElement?.srcObject as MediaStream | null;
+      const track = stream?.getVideoTracks?.()[0];
+      const caps: any = track && (track as any).getCapabilities?.();
+      if (track && caps?.torch) {
+        (track as any).applyConstraints?.({ advanced: [{ torch: this.torchOn }] } as any).catch(() => {});
+      }
+    } catch {}
+  }
+
+  // Toggle auto-stop behavior
+  toggleAutoStop(event: Event): void {
+    this.autoStopOnResult = (event.target as HTMLInputElement).checked;
+  }
+
   stopCamera(): void {
     if (this.stream) {
       this.stream.getTracks().forEach(track => track.stop());
       this.stream = null;
     }
+
+    // Stop any tracks attached by ZXing via video element
+    try {
+      const stream = this.videoElement?.nativeElement?.srcObject as MediaStream | null;
+      if (stream) {
+        stream.getTracks().forEach(t => t.stop());
+      }
+    } catch {}
     
     if (this.videoElement && this.videoElement.nativeElement.srcObject) {
       this.videoElement.nativeElement.srcObject = null;
     }
     
     this.isCameraReady = false;
+    this.lastCameraText = null;
     
     if (this.scanInterval) {
       clearInterval(this.scanInterval);
     }
-  }
-  
-  async switchCamera(): Promise<void> {
-    if (this.videoDevices.length <= 1) {
-      return;
-    }
     
-    this.currentDeviceIndex = (this.currentDeviceIndex + 1) % this.videoDevices.length;
-    await this.startCamera();
+    // Reset ZXing reader to stop any ongoing decode loops (handle different versions)
+    try {
+      const anyReader: any = this.codeReader as any;
+      if (typeof anyReader.reset === 'function') {
+        anyReader.reset();
+      } else if (typeof anyReader.stopContinuousDecode === 'function') {
+        anyReader.stopContinuousDecode();
+      }
+    } catch {}
   }
   
   private startQRScanning(): void {
@@ -322,34 +432,28 @@ export class QrScanner implements AfterViewInit, OnDestroy {
     try {
       const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
       
-      // Attempt to scan with jsQR first
+      // Attempt to scan with jsQR first (fast for QR)
       const code = jsQR(imageData.data, imageData.width, imageData.height);
       
       if (code) {
-        this.handleScanResult(code.data);
+        // jsQR only returns QR data (no format info)
+        this.handleScanResult(code.data, 'QR_CODE');
       } else {
-        // Fallback to ZXing if jsQR fails
+        // Fallback to ZXing for broader format support (QR + 1D barcodes)
         try {
-          // Convert canvas to data URL
           const imageUrl = canvas.toDataURL('image/png');
-          
-          // Create a new image from the data URL
-          const tempImg = new Image();
-          tempImg.onload = () => {
-            // Use ZXing BrowserMultiFormatReader as fallback
-            this.codeReader.decodeFromImageUrl(imageUrl)
-              .then((result: any) => {
-                this.handleScanResult(result.getText());
-              })
-              .catch(() => {
-                alert('No QR code found in the image. Try a different image or ensure the QR code is clearly visible.');
-              });
-          };
-          
-          tempImg.src = imageUrl;
+          this.codeReader.decodeFromImageUrl(imageUrl)
+            .then((result: any) => {
+              const text = result?.getText ? result.getText() : '';
+              const format = result?.getBarcodeFormat ? String(result.getBarcodeFormat()) : undefined;
+              this.handleScanResult(text, format);
+            })
+            .catch(() => {
+              alert('No QR/Barcode found in the image. Try a different image or ensure it is clearly visible.');
+            });
         } catch (zxingError) {
           console.error('ZXing error:', zxingError);
-          alert('No QR code found in the image.');
+          alert('No QR/Barcode found in the image.');
         }
       }
     } catch (error) {
@@ -359,11 +463,12 @@ export class QrScanner implements AfterViewInit, OnDestroy {
   }
   
   // Handle scan result
-  handleScanResult(result: string): void {
+  handleScanResult(result: string, format?: string): void {
     this.scanResult = result;
+    this.scanFormat = format || null;
     this.determineResultType(result);
   }
-  
+
   determineResultType(data: string): void {
     if (data.startsWith('http://') || data.startsWith('https://')) {
       this.scanResultType = 'URL';
@@ -377,6 +482,8 @@ export class QrScanner implements AfterViewInit, OnDestroy {
       this.scanResultType = 'WiFi';
     } else if (data.startsWith('BEGIN:VCARD')) {
       this.scanResultType = 'vCard';
+    } else if (this.scanFormat && this.scanFormat !== 'QR_CODE') {
+      this.scanResultType = `Barcode (${this.scanFormat})`;
     } else {
       this.scanResultType = 'Text';
     }
@@ -385,11 +492,45 @@ export class QrScanner implements AfterViewInit, OnDestroy {
   clearScanResult(): void {
     this.scanResult = null;
     this.scanResultType = '';
+    this.scanFormat = null;
+    this.lastCameraText = null;
     
-    // If camera was active, restart scanning
+    // If camera was active, restart scanning using ZXing video decode
     if (this.scanOption === 'camera' && this.isCameraReady) {
-      this.startQRScanning();
+      const deviceId = this.videoDevices[this.currentDeviceIndex]?.deviceId;
+      if (deviceId) {
+        this.startZXingVideoScan(deviceId);
+      } else {
+        this.startCamera();
+      }
     }
+  }
+
+  openResult(): void {
+    if (this.scanResultType === 'URL' && this.scanResult) {
+      window.open(this.scanResult, '_blank');
+    }
+  }
+
+  private playBeep(): void {
+    try {
+      if (!this.audioCtx) this.audioCtx = new (window as any).AudioContext();
+      const ctx = this.audioCtx;
+      if (!ctx) return;
+      const o = ctx.createOscillator();
+      const g = ctx.createGain();
+      o.type = 'sine';
+      o.frequency.value = 880; // A5
+      o.connect(g);
+      g.connect(ctx.destination);
+      g.gain.setValueAtTime(0.0001, ctx.currentTime);
+      g.gain.exponentialRampToValueAtTime(0.2, ctx.currentTime + 0.01);
+      o.start();
+      setTimeout(() => {
+        g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.12);
+        o.stop(ctx.currentTime + 0.14);
+      }, 10);
+    } catch {}
   }
   
   copyToClipboard(): void {
@@ -435,7 +576,7 @@ export class QrScanner implements AfterViewInit, OnDestroy {
   
   getPhoneNumber(): string {
     if (this.scanResult && this.scanResult.startsWith('tel:')) {
-      return this.scanResult.substring(4); // Remove 'tel:'
+      return this.scanResult.substring  (4); // Remove 'tel:'
     }
     return '';
   }

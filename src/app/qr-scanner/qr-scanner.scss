@@ -166,30 +166,39 @@ $shadow: 0 8px 30px rgba(0, 0, 0, 0.05), 0 2px 8px rgba(0, 0, 0, 0.05);
 
 .camera-controls {
   display: flex;
-  gap: 1rem;
-  
-  .control-btn {
-    padding: 0.75rem 1.5rem;
-    border: none;
-    border-radius: 4px;
-    font-weight: 500;
-    cursor: pointer;
-    background: $primary;
-    color: white;
-    transition: background 0.2s;
-    
-    &:hover {
-      background: #0d47a1;
-    }
-    
-    &.danger {
-      background: #ea4335;
-      
-      &:hover {
-        background: #c5221f;
-      }
-    }
+  gap: 0.75rem;
+  align-items: center;
+  flex-wrap: wrap;
+
+  .control-select {
+    padding: 0.5rem 0.75rem;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    background: #fff;
   }
+
+  .switch {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 999px;
+    padding: 0.25rem 0.5rem;
+
+    input { accent-color: #1a73e8; }
+    span { font-size: 0.85rem; color: #334155; }
+  }
+}
+
+.open-btn {
+  margin-left: 0.5rem;
+  background: #10b981;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  padding: 0.25rem 0.5rem;
+  cursor: pointer;
 }
 
 .file-container {
@@ -382,21 +391,32 @@ $shadow: 0 8px 30px rgba(0, 0, 0, 0.05), 0 2px 8px rgba(0, 0, 0, 0.05);
 
 .result-container {
   background: $white;
-  border-radius: $radius;
-  box-shadow: $shadow;
-  padding: 2rem;
-  border: 1px solid rgba(0, 0, 0, 0.03);
+  border-radius: 8px; // match .qr-file-info
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06); // match .qr-file-info
+  padding: 1.25rem; // match .qr-file-info
+  border: 1px solid #e8eaed; // match .qr-file-info
   animation: fadeIn 0.5s ease-out;
 }
 
 .result-type {
-  display: inline-block;
-  background: $primary;
-  color: white;
-  padding: 0.25rem 0.75rem;
-  border-radius: 1rem;
-  font-size: 0.875rem;
-  margin-bottom: 1rem;
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+  font-weight: 600;
+  color: #202124;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid #f1f3f4; // match inner section headings
+  margin-bottom: 0.75rem;
+
+  .format-chip {
+    background: #eef2ff;
+    color: #1a73e8;
+    border: 1px solid #c7d2fe;
+    border-radius: 999px;
+    padding: 0.15rem 0.5rem;
+    font-size: .8rem;
+    font-weight: 600;
+  }
 }
 
 .result-content {
@@ -425,6 +445,8 @@ $shadow: 0 8px 30px rgba(0, 0, 0, 0.05), 0 2px 8px rgba(0, 0, 0, 0.05);
 .result-actions {
   display: flex;
   gap: 1rem;
+  border-top: 1px solid #f1f3f4;
+  padding-top: 0.75rem;
   
   .action-btn {
     padding: 0.75rem 1.5rem;
@@ -484,38 +506,38 @@ $shadow: 0 8px 30px rgba(0, 0, 0, 0.05), 0 2px 8px rgba(0, 0, 0, 0.05);
 }
 
 .uploaded-qr-section {
-  background: rgba(248, 249, 250, 0.5);
-  border-radius: 12px;
-  padding: 1.5rem;
+  background: transparent;
+  border-radius: 0;
+  padding: 0;
   margin-bottom: 1.5rem;
-  border: 1px solid #dadce0;
-  transition: all 0.3s ease;
-  
-  &:hover {
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
-    border-color: #c0c5cc;
-  }
-  
-  h3 {
-    color: $primary;
-    margin-bottom: 1.25rem;
-    font-size: 1.3rem;
-    font-weight: 600;
-    border-bottom: 1px solid #e8eaed;
-    padding-bottom: 0.75rem;
-  }
-}
+  border: 0;
+  transition: none;
+   
+   h3 {
+     color: $primary;
+     margin-bottom: 0; // remove extra space under heading
+     font-size: 1.3rem;
+     font-weight: 600;
+     border-bottom: none; // remove line under 'Uploaded Image'
+     padding-bottom: 0; // tighten spacing since underline removed
+   }
+ }
 
-.uploaded-qr-container {
-  display: flex;
-  flex-direction: column;
-  gap: 1.5rem;
-  
-  @media (min-width: 768px) {
-    flex-direction: row;
-    align-items: flex-start;
-  }
-}
+ .uploaded-qr-container {
+   display: flex;
+   flex-direction: column;
+   gap: 1.5rem;
+   background: $white;
+   border-radius: 8px;
+   padding: 1.25rem; // match .result-container
+   border: 1px solid #e8eaed; // match .result-container
+   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06); // match .result-container
+   
+   @media (min-width: 768px) {
+     flex-direction: row;
+     align-items: flex-start;
+   }
+ }
 
 .qr-preview-container {
   display: flex;
@@ -615,7 +637,7 @@ $shadow: 0 8px 30px rgba(0, 0, 0, 0.05), 0 2px 8px rgba(0, 0, 0, 0.05);
   .info-label {
     font-weight: 500;
     color: #5f6368;
-    flex: 0 0 100px;
+    flex: 0 0 110px;
   }
   
   .info-value {
@@ -623,45 +645,31 @@ $shadow: 0 8px 30px rgba(0, 0, 0, 0.05), 0 2px 8px rgba(0, 0, 0, 0.05);
     word-break: break-all;
   }
   
-  @media (min-width: 768px) {
-    flex: 1;
-    max-width: 350px;
-  }
+  // When displayed under both columns, it should naturally take full width; remove side constraints
 }
 
-.results-section {
-  &.with-uploaded-qr {
-    margin-top: 0.5rem;
-  }
-  
-  h3 {
-    color: $primary;
-    margin-bottom: 1.25rem;
-    font-size: 1.3rem;
-    font-weight: 600;
-    border-bottom: 1px solid #e8eaed;
-    padding-bottom: 0.75rem;
-  }
-}
-
-// Hide camera option on desktop devices
-@media (min-width: 769px) {
-  .camera-option {
-    display: none;
-  }
-}
-
-// Mobile specific styles
-.mobile-results {
-  display: none;
-  
-  @media (max-width: 768px) {
-    display: block;
-  }
-}
-
-// Adjust result container height in side-by-side mode
+// Desktop: side-by-side layout for upload (left) and results (right)
 @media (min-width: 992px) {
+  .vertical-layout-container {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-auto-rows: min-content;
+    column-gap: 2rem;
+    row-gap: 0.75rem; // tighter vertical spacing
+    align-items: start;
+  }
+  .vertical-layout-container .results-section {
+    grid-column: 2;
+    grid-row: 1 / span 2; // occupy full right side
+  }
+  .file-upload-section { margin-bottom: 0; }
+
+  // Make the file info panel span full width below both columns
+  .vertical-layout-container > .qr-file-info {
+    grid-column: 1 / -1;
+    margin-top: 0; // remove extra gap above file info
+  }
+  
   .result-container {
     min-height: 400px;
   }
@@ -669,12 +677,50 @@ $shadow: 0 8px 30px rgba(0, 0, 0, 0.05), 0 2px 8px rgba(0, 0, 0, 0.05);
   .result-content {
     flex-grow: 1;
   }
+
+  // Match uploaded card height to results for consistent design
+  .uploaded-qr-container {
+    min-height: 400px;
+  }
 }
 
-// Ensure responsive layout for mobile view
-@media (max-width: 991px) {
-  .side-by-side-container {
-    gap: 2rem;
+.qr-file-info {
+  background: white;
+  border-radius: 8px;
+  padding: 1.25rem;
+  padding-top: 0.75rem; // slightly reduce top padding per feedback
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  border: 1px solid #e8eaed;
+  
+  h4 {
+    font-size: 1.1rem;
+    margin-bottom: 1rem;
+    color: #202124;
+    font-weight: 600;
+  }
+  
+  .info-item {
+    display: flex;
+    margin-bottom: 0.75rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid #f1f3f4;
+    
+    &:last-child {
+      margin-bottom: 0;
+      padding-bottom: 0;
+      border-bottom: none;
+    }
+  }
+  
+  .info-label {
+    font-weight: 500;
+    color: #5f6368;
+    flex: 0 0 110px;
+  }
+  
+  .info-value {
+    color: #202124;
+    word-break: break-all;
   }
 }
 
@@ -690,17 +736,17 @@ $shadow: 0 8px 30px rgba(0, 0, 0, 0.05), 0 2px 8px rgba(0, 0, 0, 0.05);
   background-color: #f8f9fa;
   
   .empty-result-icon {
-    width: 48px; /* Smaller icon size */
-    height: 48px;
-    color: $gray;
-    margin-bottom: 0.75rem;
-    opacity: 0.7;
-    
-    svg {
-      width: 100%;
-      height: 100%;
-    }
-  }
+    width: 28px; // smaller icon size
+    height: 28px;
+     color: $gray;
+    margin-bottom: 0.5rem; // tighter spacing
+     opacity: 0.7;
+     
+     svg {
+       width: 100%;
+       height: 100%;
+     }
+   }
   
   p {
     color: $gray;
