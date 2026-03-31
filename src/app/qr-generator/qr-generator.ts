@@ -1,9 +1,9 @@
 import { Component, OnInit, ViewChild } from '@angular/core';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
-// Fix import path
 import { QrCodeService } from './../services/qr-code.service';
-// Import the QR with logo component
 import { QrWithLogoComponent } from './qr-with-logo.component';
+import { QrHistoryService } from '../services/qr-history.service';
+import { QrTemplateService, QrTemplate } from '../services/qr-template.service';
 import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
 
 @Component({
@@ -23,7 +23,12 @@ export class QrGenerator implements OnInit {
   @ViewChild(QrWithLogoComponent) qrWithLogoComponent!: QrWithLogoComponent;
 
   // Track active tab in a reactive, Angular-friendly way
-  activeTab: 'content' | 'design' | 'advanced' = 'content';
+  activeTab: 'content' | 'design' | 'advanced' | 'templates' = 'content';
+
+  // Templates
+  templates: QrTemplate[] = [];
+  showTemplates = false;
+  templateName = '';
   
   // Inline copy notice
   copyNotice: string | null = null;
@@ -45,12 +50,14 @@ export class QrGenerator implements OnInit {
 
   constructor(
     private fb: FormBuilder,
-    private qrCodeService: QrCodeService
+    private qrCodeService: QrCodeService,
+    private historyService: QrHistoryService,
+    private templateService: QrTemplateService
   ) {}
 
   ngOnInit(): void {
     this.initializeForm();
-    // Angular-driven tabs (remove DOM listeners)
+    this.templates = this.templateService.getAll();
     // Live preview: update on form changes
     this.qrForm.valueChanges
       .pipe(debounceTime(200))
@@ -394,6 +401,62 @@ export class QrGenerator implements OnInit {
 
     this.updateQrDataString();
     this.isGenerating = false;
+
+    // Save to history
+    if (this.qrDataString) {
+      const fv = this.qrForm.value;
+      this.historyService.add({
+        data: this.qrDataString,
+        type: fv.qrType,
+        label: this.getFileBase(),
+        colorDark: fv.colorDark,
+        colorLight: fv.colorLight,
+        errorCorrection: fv.errorCorrection,
+        size: fv.size,
+      });
+    }
+  }
+
+  // Template methods
+  loadTemplate(template: QrTemplate): void {
+    this.qrForm.patchValue({
+      colorDark: template.colorDark,
+      colorLight: template.colorLight,
+      errorCorrection: template.errorCorrection,
+      size: template.size,
+      margin: template.margin,
+      gradientEnabled: template.gradientEnabled,
+      gradientFrom: template.gradientFrom,
+      gradientTo: template.gradientTo,
+      gradientAngle: template.gradientAngle,
+    });
+    this.showTemplates = false;
+  }
+
+  saveAsTemplate(): void {
+    if (!this.templateName.trim()) return;
+    const fv = this.qrForm.value;
+    this.templateService.save({
+      name: this.templateName.trim(),
+      type: fv.qrType,
+      colorDark: fv.colorDark,
+      colorLight: fv.colorLight,
+      errorCorrection: fv.errorCorrection,
+      size: fv.size,
+      margin: fv.margin,
+      gradientEnabled: fv.gradientEnabled,
+      gradientFrom: fv.gradientFrom,
+      gradientTo: fv.gradientTo,
+      gradientAngle: fv.gradientAngle,
+      addLogo: fv.addLogo,
+    });
+    this.templates = this.templateService.getAll();
+    this.templateName = '';
+  }
+
+  removeTemplate(id: string): void {
+    this.templateService.remove(id);
+    this.templates = this.templateService.getAll();
   }
 
   async downloadQRCode(fileType: 'png' | 'svg'): Promise<void> {

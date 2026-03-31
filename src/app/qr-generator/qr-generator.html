@@ -11,6 +11,7 @@
         <button type="button" class="tab-btn" [class.active]="activeTab==='content'" id="content-tab" (click)="activeTab='content'">📝 Content</button>
         <button type="button" class="tab-btn" [class.active]="activeTab==='design'" id="design-tab" (click)="activeTab='design'">🎨 Design</button>
         <button type="button" class="tab-btn" [class.active]="activeTab==='advanced'" id="advanced-tab" (click)="activeTab='advanced'">⚙️ Advanced</button>
+        <button type="button" class="tab-btn" [class.active]="activeTab==='templates'" id="templates-tab" (click)="activeTab='templates'">📋 Templates</button>
       </div>
 
       <form [formGroup]="qrForm" (ngSubmit)="generateQRCode()">
@@ -330,6 +331,44 @@
                 <input type="range" id="margin" formControlName="margin" min="0" max="10" step="1" class="range-slider">
                 <span class="range-value">{{ qrForm.get('margin')?.value }} modules</span>
               </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Templates Tab -->
+        <div class="tab-content" [class.active]="activeTab==='templates'" id="templates-panel">
+          <div class="templates-section">
+            <h3>📋 Design Templates</h3>
+            <p class="section-hint">Save and reuse your favorite QR design settings.</p>
+
+            <div class="save-template-row">
+              <input type="text" [(value)]="templateName" (input)="templateName = $any($event.target).value" placeholder="Template name…" class="template-name-input" />
+              <button type="button" class="save-template-btn" (click)="saveAsTemplate()" [disabled]="!templateName.trim()">Save Current</button>
+            </div>
+
+            <div class="template-list">
+              @for (tpl of templates; track tpl.id) {
+              <div class="template-card">
+                <div class="template-preview">
+                  <span class="color-dot" [style.background]="tpl.colorDark"></span>
+                  <span class="color-dot" [style.background]="tpl.colorLight" style="border: 1px solid var(--border-input)"></span>
+                  @if (tpl.gradientEnabled) {
+                  <span class="gradient-badge">Gradient</span>
+                  }
+                </div>
+                <div class="template-info">
+                  <div class="template-name">{{ tpl.name }}</div>
+                  <div class="template-meta">{{ tpl.size }}px · EC {{ tpl.errorCorrection }}</div>
+                </div>
+                <div class="template-actions">
+                  <button type="button" class="use-btn" (click)="loadTemplate(tpl)">Use</button>
+                  <button type="button" class="remove-btn" (click)="removeTemplate(tpl.id)">×</button>
+                </div>
+              </div>
+              }
+              @if (templates.length === 0) {
+              <p class="no-templates">No saved templates. Save one above to get started.</p>
+              }
             </div>
           </div>
         </div>

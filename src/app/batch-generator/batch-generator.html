@@ -1,0 +1,314 @@
+<div class="batch-generator">
+  <div class="header-section">
+    <h1>Batch QR Generator</h1>
+    <p class="description">Generate multiple QR codes at once — sequential numbers or bulk text — and download as PDF or PNG.</p>
+  </div>
+
+  <div class="content-grid">
+    <!-- Settings Panel -->
+    <div class="settings-panel">
+      <!-- Mode Toggle -->
+      <div class="mode-toggle">
+        <button [class.active]="mode === 'sequential'" (click)="mode = 'sequential'">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h7"/></svg>
+          Sequential
+        </button>
+        <button [class.active]="mode === 'bulk'" (click)="mode = 'bulk'">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+          Bulk Text
+        </button>
+      </div>
+
+      @if (mode === 'sequential') {
+      <form [formGroup]="form" class="form-body">
+        <div class="form-section">
+          <h3>Pattern</h3>
+
+          <div class="form-row">
+            <label>Prefix</label>
+            <input formControlName="prefix" placeholder="e.g. ITEM-" />
+          </div>
+
+          <div class="form-row-group">
+            <div class="form-row">
+              <label>Start</label>
+              <input type="number" formControlName="start" min="0" />
+            </div>
+            <div class="form-row">
+              <label>End</label>
+              <input type="number" formControlName="end" min="1" />
+            </div>
+            <div class="form-row">
+              <label>Padding</label>
+              <input type="number" formControlName="padding" min="1" max="10" />
+            </div>
+          </div>
+
+          <div class="form-row-group">
+            <div class="form-row">
+              <label>Separator</label>
+              <input formControlName="separator" placeholder="optional" />
+            </div>
+            <div class="form-row">
+              <label>Suffix</label>
+              <input formControlName="suffix" placeholder="optional" />
+            </div>
+          </div>
+
+          <div class="preview-label">
+            <span class="label-text">Preview:</span>
+            <code>{{ previewLabel() }}</code>
+            <span class="count-badge">{{ totalCount }} items</span>
+          </div>
+        </div>
+
+        <div class="form-section">
+          <h3>QR Settings</h3>
+
+          <!-- Size Presets -->
+          <div class="form-row">
+            <label>Size</label>
+            <div class="size-presets">
+              @for (preset of sizePresets; track preset.label) {
+              <button type="button"
+                      class="size-preset-btn"
+                      [class.active]="activePreset === preset.label"
+                      (click)="applyPreset(preset)"
+                      [title]="preset.label + ' (' + preset.size + 'px)'">
+                <span class="preset-icon">{{ preset.icon }}</span>
+                <span class="preset-label">{{ preset.label }}</span>
+                <span class="preset-size">{{ preset.size }}px</span>
+              </button>
+              }
+            </div>
+          </div>
+
+          <!-- Size Slider + Number -->
+          <div class="form-row">
+            <div class="size-slider-row">
+              <input type="range" formControlName="qrSize" min="50" max="2048" step="1" class="size-slider" />
+              <div class="size-number-input">
+                <input type="number" formControlName="qrSize" min="50" max="2048" />
+                <span class="unit">px</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Margin + Error Correction -->
+          <div class="form-row-group">
+            <div class="form-row">
+              <label>Margin</label>
+              <div class="size-slider-row compact">
+                <input type="range" formControlName="margin" min="0" max="10" step="1" class="size-slider" />
+                <span class="margin-value">{{ form.get('margin')?.value }}</span>
+              </div>
+            </div>
+            <div class="form-row">
+              <label>Error Correction</label>
+              <select formControlName="errorCorrection">
+                <option value="L">Low (7%)</option>
+                <option value="M">Medium (15%)</option>
+                <option value="Q">Quartile (25%)</option>
+                <option value="H">High (30%)</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-row-group">
+            <div class="form-row">
+              <label>Dark Color</label>
+              <div class="color-input">
+                <input type="color" formControlName="colorDark" />
+                <span>{{ form.get('colorDark')?.value }}</span>
+              </div>
+            </div>
+            <div class="form-row">
+              <label>Light Color</label>
+              <div class="color-input">
+                <input type="color" formControlName="colorLight" />
+                <span>{{ form.get('colorLight')?.value }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <button class="generate-btn" (click)="generate()" [disabled]="generating || form.invalid">
+          @if (generating) {
+            Generating… {{ progress }}%
+          } @else {
+            Generate {{ totalCount }} QR Codes
+          }
+        </button>
+      </form>
+      }
+
+      @if (mode === 'bulk') {
+      <div class="form-body">
+        <div class="form-section">
+          <h3>Enter Text (one per line)</h3>
+          <textarea
+            [(value)]="bulkText"
+            (input)="bulkText = $any($event.target).value"
+            rows="10"
+            placeholder="https://example.com/page1&#10;https://example.com/page2&#10;Hello World&#10;PRODUCT-001"></textarea>
+          <div class="preview-label">
+            <span class="count-badge">{{ totalCount }} items</span>
+          </div>
+        </div>
+
+        <div class="form-section">
+          <h3>QR Settings</h3>
+          <form [formGroup]="form">
+            <!-- Size Presets -->
+            <div class="form-row">
+              <label>Size</label>
+              <div class="size-presets">
+                @for (preset of sizePresets; track preset.label) {
+                <button type="button"
+                        class="size-preset-btn"
+                        [class.active]="activePreset === preset.label"
+                        (click)="applyPreset(preset)"
+                        [title]="preset.label + ' (' + preset.size + 'px)'">
+                  <span class="preset-icon">{{ preset.icon }}</span>
+                  <span class="preset-label">{{ preset.label }}</span>
+                  <span class="preset-size">{{ preset.size }}px</span>
+                </button>
+                }
+              </div>
+            </div>
+
+            <!-- Size Slider + Number -->
+            <div class="form-row">
+              <div class="size-slider-row">
+                <input type="range" formControlName="qrSize" min="50" max="2048" step="1" class="size-slider" />
+                <div class="size-number-input">
+                  <input type="number" formControlName="qrSize" min="50" max="2048" />
+                  <span class="unit">px</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Margin + Error Correction -->
+            <div class="form-row-group">
+              <div class="form-row">
+                <label>Margin</label>
+                <div class="size-slider-row compact">
+                  <input type="range" formControlName="margin" min="0" max="10" step="1" class="size-slider" />
+                  <span class="margin-value">{{ form.get('margin')?.value }}</span>
+                </div>
+              </div>
+              <div class="form-row">
+                <label>Error Correction</label>
+                <select formControlName="errorCorrection">
+                  <option value="L">Low (7%)</option>
+                  <option value="M">Medium (15%)</option>
+                  <option value="Q">Quartile (25%)</option>
+                  <option value="H">High (30%)</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- Colors -->
+            <div class="form-row-group">
+              <div class="form-row">
+                <label>Dark Color</label>
+                <div class="color-input">
+                  <input type="color" formControlName="colorDark" />
+                  <span>{{ form.get('colorDark')?.value }}</span>
+                </div>
+              </div>
+              <div class="form-row">
+                <label>Light Color</label>
+                <div class="color-input">
+                  <input type="color" formControlName="colorLight" />
+                  <span>{{ form.get('colorLight')?.value }}</span>
+                </div>
+              </div>
+            </div>
+          </form>
+        </div>
+
+        <button class="generate-btn" (click)="generate()" [disabled]="generating || totalCount === 0">
+          @if (generating) {
+            Generating… {{ progress }}%
+          } @else {
+            Generate {{ totalCount }} QR Codes
+          }
+        </button>
+      </div>
+      }
+
+      @if (errorMessage) {
+      <div class="error-notice">{{ errorMessage }}</div>
+      }
+    </div>
+
+    <!-- Results Panel -->
+    <div class="results-panel">
+      @if (items.length === 0 && !generating) {
+      <div class="empty-state">
+        <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M4 5a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1H5a1 1 0 01-1-1V5zm10 0a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1V5zM4 15a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1H5a1 1 0 01-1-1v-4z"/>
+          <path stroke-linecap="round" stroke-linejoin="round" d="M14 15h6m-3-3v6"/>
+        </svg>
+        <p>Configure your batch settings and click Generate</p>
+      </div>
+      }
+
+      @if (generating) {
+      <div class="progress-bar-container">
+        <div class="progress-bar" [style.width.%]="progress"></div>
+      </div>
+      <p class="progress-text">Generating {{ items.length }} / {{ totalCount }}…</p>
+      }
+
+      @if (items.length > 0) {
+      <div class="results-header">
+        <h3>{{ items.length }} QR Codes</h3>
+        <div class="result-actions">
+          <div class="pdf-options">
+            <label>Columns:
+              <select [(value)]="pdfColumns" (change)="pdfColumns = +$any($event.target).value">
+                <option value="2">2</option>
+                <option value="3" selected>3</option>
+                <option value="4">4</option>
+                <option value="5">5</option>
+              </select>
+            </label>
+            <label class="checkbox-label">
+              <input type="checkbox" [(checked)]="showLabels" (change)="showLabels = $any($event.target).checked" checked />
+              Labels
+            </label>
+          </div>
+          <button class="action-btn pdf" (click)="printAsPDF()" title="Opens print dialog — choose 'Save as PDF' to download">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
+            Save as PDF
+          </button>
+          <button class="action-btn download" (click)="downloadAllPNGs()">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+            Download All PNGs
+          </button>
+        </div>
+      </div>
+
+      <div class="qr-grid">
+        @for (item of items; track item.data) {
+        <div class="qr-card" [class.failed]="!item.dataUrl">
+          @if (item.dataUrl) {
+          <img [src]="item.dataUrl" [alt]="item.label" [width]="thumbnailSize" [height]="thumbnailSize" />
+          } @else {
+          <div class="failed-placeholder" [style.width.px]="thumbnailSize" [style.height.px]="thumbnailSize">Failed</div>
+          }
+          <div class="card-label" [title]="item.data">{{ item.label }}</div>
+          @if (item.dataUrl) {
+          <button class="mini-download" (click)="downloadPNG(item)" title="Download this QR as PNG">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+          </button>
+          }
+        </div>
+        }
+      </div>
+      }
+    </div>
+  </div>
+</div>
