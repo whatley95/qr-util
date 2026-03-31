@@ -1,12 +1,11 @@
 import { Component, ElementRef, OnInit, ViewChild } from '@angular/core';
-import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import JsBarcode from 'jsbarcode';
 
 @Component({
   selector: 'app-barcode-generator',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule],
+  imports: [ReactiveFormsModule],
   template: `
     <div class="barcode-generator">
       <h1>Barcode Generator</h1>
@@ -30,8 +29,12 @@ import JsBarcode from 'jsbarcode';
           <div class="row">
             <label>Value</label>
             <input formControlName="value" placeholder="Enter value" />
-            <small class="hint" *ngIf="form.get('format')?.value === 'EAN13'">EAN13 usually requires 12 or 13 digits.</small>
-            <small class="hint" *ngIf="form.get('format')?.value === 'UPC'">UPC requires 11 or 12 digits.</small>
+            @if (form.get('format')?.value === 'EAN13') {
+            <small class="hint">EAN13 usually requires 12 or 13 digits.</small>
+            }
+            @if (form.get('format')?.value === 'UPC') {
+            <small class="hint">UPC requires 11 or 12 digits.</small>
+            }
           </div>
 
           <div class="row inline">
@@ -58,55 +61,63 @@ import JsBarcode from 'jsbarcode';
             <button type="button" class="secondary" (click)="clear()">Clear</button>
           </div>
 
-          <div class="error" *ngIf="errorMessage">{{ errorMessage }}</div>
+          @if (errorMessage) {
+          <div class="error">{{ errorMessage }}</div>
+          }
         </form>
 
         <div class="panel preview">
           <div class="preview-header">
             <span>Preview</span>
-            <div class="actions" *ngIf="hasOutput">
+            @if (hasOutput) {
+            <div class="actions">
               <button (click)="downloadPNG()">Download PNG</button>
               <button (click)="downloadSVG()">Download SVG</button>
             </div>
+            }
           </div>
           <div class="canvas">
             <svg #svg role="img" aria-label="Barcode preview"></svg>
-            <div class="placeholder" *ngIf="!hasOutput">Enter a value to preview…</div>
+            @if (!hasOutput) {
+            <div class="placeholder">Enter a value to preview…</div>
+            }
           </div>
-          <div class="meta" *ngIf="hasOutput">
+          @if (hasOutput) {
+          <div class="meta">
             <span>Format: {{ form.value.format }}</span>
             <span>Size: {{ previewSize.width }} × {{ previewSize.height }} px</span>
           </div>
+          }
         </div>
       </div>
     </div>
   `,
   styles: [`
     .barcode-generator{max-width:1100px;margin:0 auto;padding:1.25rem}
-    h1{font-size:1.5rem;margin:0 0 1rem}
+    h1{font-size:1.5rem;margin:0 0 1rem;color:var(--text-primary)}
     .layout{display:grid;gap:1rem}
     @media (min-width: 900px){.layout{grid-template-columns: 1fr 1fr}}
 
-    .panel{background:#fff;border-radius:12px;padding:1rem;box-shadow:0 2px 12px rgba(0,0,0,.06)}
+    .panel{background:var(--bg-card);border-radius:var(--radius-md);padding:1rem;box-shadow:var(--shadow-sm)}
     form .row{display:flex;flex-direction:column;gap:.25rem}
     .row.inline{flex-direction:row;align-items:center;gap:.5rem}
     .grid-3{display:grid;grid-template-columns: repeat(3, 1fr);gap:1rem}
-    label{font-weight:600}
-    input, select{height:38px;padding:0 .5rem;border:1px solid #e2e8f0;border-radius:8px}
+    label{font-weight:600;color:var(--text-primary)}
+    input, select{height:38px;padding:0 .5rem;border:1px solid var(--border-input);border-radius:var(--radius-sm);background:var(--bg-input);color:var(--text-primary)}
     input[type="checkbox"]{height:auto}
-    .hint{color:#64748b;font-size:.8rem}
+    .hint{color:var(--text-secondary);font-size:.8rem}
 
     .actions{display:flex;gap:.5rem;margin-top:.75rem}
-    button{background:#1f6feb;color:#fff;border:none;border-radius:8px;padding:.55rem .9rem;cursor:pointer}
-    button.secondary{background:#e2e8f0;color:#0f172a}
+    button{background:var(--color-primary);color:#fff;border:none;border-radius:var(--radius-sm);padding:.55rem .9rem;cursor:pointer}
+    button.secondary{background:var(--bg-hover);color:var(--text-primary)}
     button:disabled{opacity:.6;cursor:not-allowed}
 
-    .preview .preview-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:.5rem}
-    .canvas{position:relative;min-height:200px;display:flex;align-items:center;justify-content:center;background:repeating-conic-gradient(#f8fafc 0 15deg,#f1f5f9 0 30deg) 50%/20px 20px}
-    svg{width:100%;max-width:700px;display:block;background:#fff;border-radius:8px}
-    .placeholder{position:absolute;color:#64748b}
-    .meta{margin-top:.5rem;color:#334155;display:flex;gap:1rem;flex-wrap:wrap}
-    .error{margin-top:.5rem;color:#b91c1c;font-weight:600}
+    .preview .preview-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:.5rem;color:var(--text-primary)}
+    .canvas{position:relative;min-height:200px;display:flex;align-items:center;justify-content:center;background:var(--bg-body);border-radius:var(--radius-sm)}
+    svg{width:100%;max-width:700px;display:block;background:var(--bg-card);border-radius:var(--radius-sm)}
+    .placeholder{position:absolute;color:var(--text-secondary)}
+    .meta{margin-top:.5rem;color:var(--text-secondary);display:flex;gap:1rem;flex-wrap:wrap}
+    .error{margin-top:.5rem;color:var(--color-error);font-weight:600}
   `]
 })
 export class BarcodeGeneratorComponent implements OnInit {

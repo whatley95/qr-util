@@ -1,15 +1,12 @@
 import { Routes } from '@angular/router';
 import { Home } from './home/home';
-import { QrGenerator } from './qr-generator/qr-generator';
-import { QrScanner } from './qr-scanner/qr-scanner';
-import { BarcodeGeneratorComponent } from './barcode/barcode-generator.component';
 
 export const routes: Routes = [
   { path: '', component: Home },
-  { path: 'generate', component: QrGenerator },
-  { path: 'scan', component: QrScanner },
-  { path: 'barcode/generate', component: BarcodeGeneratorComponent },
+  { path: 'generate', loadComponent: () => import('./qr-generator/qr-generator').then(m => m.QrGenerator) },
+  { path: 'scan', loadComponent: () => import('./qr-scanner/qr-scanner').then(m => m.QrScanner) },
+  { path: 'barcode/generate', loadComponent: () => import('./barcode/barcode-generator.component').then(m => m.BarcodeGeneratorComponent) },
   // Point barcode scan to the unified scanner
-  { path: 'barcode/scan', component: QrScanner },
+  { path: 'barcode/scan', loadComponent: () => import('./qr-scanner/qr-scanner').then(m => m.QrScanner) },
   { path: '**', redirectTo: '' }
 ];

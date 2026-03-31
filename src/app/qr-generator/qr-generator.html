@@ -32,27 +32,33 @@
           </div>
 
         <!-- Dynamic form fields based on selected type -->
-        <ng-container *ngIf="qrForm.get('qrType')?.value === 'url'">
+        @if (qrForm.get('qrType')?.value === 'url') {
           <div class="form-group">
             <label for="url">URL:</label>
             <input type="url" id="url" formControlName="url" placeholder="https://example.com">
-            <div class="error" *ngIf="isFieldInvalid('url')">Please enter a valid URL</div>
+            @if (isFieldInvalid('url')) {
+            <div class="error">Please enter a valid URL</div>
+            }
           </div>
-        </ng-container>
+        }
 
-        <ng-container *ngIf="qrForm.get('qrType')?.value === 'text'">
+        @if (qrForm.get('qrType')?.value === 'text') {
           <div class="form-group">
             <label for="text">Text:</label>
             <textarea id="text" formControlName="text" placeholder="Enter your text here" rows="3"></textarea>
-            <div class="error" *ngIf="isFieldInvalid('text')">Please enter some text</div>
+            @if (isFieldInvalid('text')) {
+            <div class="error">Please enter some text</div>
+            }
           </div>
-        </ng-container>
+        }
 
-        <ng-container *ngIf="qrForm.get('qrType')?.value === 'email'">
+        @if (qrForm.get('qrType')?.value === 'email') {
           <div class="form-group">
             <label for="email">Email Address:</label>
             <input type="email" id="email" formControlName="email" placeholder="user@example.com">
-            <div class="error" *ngIf="isFieldInvalid('email')">Please enter a valid email address</div>
+            @if (isFieldInvalid('email')) {
+            <div class="error">Please enter a valid email address</div>
+            }
           </div>
           <div class="form-group">
             <label for="emailSubject">Subject (optional):</label>
@@ -62,33 +68,39 @@
             <label for="emailBody">Body (optional):</label>
             <textarea id="emailBody" formControlName="emailBody" placeholder="Email content" rows="3"></textarea>
           </div>
-        </ng-container>
+        }
 
-        <ng-container *ngIf="qrForm.get('qrType')?.value === 'phone'">
+        @if (qrForm.get('qrType')?.value === 'phone') {
           <div class="form-group">
             <label for="phone">Phone Number:</label>
             <input type="tel" id="phone" formControlName="phone" placeholder="+1234567890">
-            <div class="error" *ngIf="isFieldInvalid('phone')">Please enter a valid phone number</div>
+            @if (isFieldInvalid('phone')) {
+            <div class="error">Please enter a valid phone number</div>
+            }
           </div>
-        </ng-container>
+        }
 
-        <ng-container *ngIf="qrForm.get('qrType')?.value === 'sms'">
+        @if (qrForm.get('qrType')?.value === 'sms') {
           <div class="form-group">
             <label for="smsNumber">Phone Number:</label>
             <input type="tel" id="smsNumber" formControlName="smsNumber" placeholder="+1234567890">
-            <div class="error" *ngIf="isFieldInvalid('smsNumber')">Please enter a valid phone number</div>
+            @if (isFieldInvalid('smsNumber')) {
+            <div class="error">Please enter a valid phone number</div>
+            }
           </div>
           <div class="form-group">
             <label for="smsMessage">Message (optional):</label>
             <textarea id="smsMessage" formControlName="smsMessage" placeholder="SMS content" rows="3"></textarea>
           </div>
-        </ng-container>
+        }
 
-        <ng-container *ngIf="qrForm.get('qrType')?.value === 'wifi'">
+        @if (qrForm.get('qrType')?.value === 'wifi') {
           <div class="form-group">
             <label for="ssid">Network Name (SSID):</label>
             <input type="text" id="ssid" formControlName="ssid" placeholder="WiFi Network Name">
-            <div class="error" *ngIf="isFieldInvalid('ssid')">Please enter a network name</div>
+            @if (isFieldInvalid('ssid')) {
+            <div class="error">Please enter a network name</div>
+            }
           </div>
           <div class="form-group">
             <label for="encryption">Encryption:</label>
@@ -98,29 +110,37 @@
               <option value="nopass">No Encryption</option>
             </select>
           </div>
-          <div class="form-group" *ngIf="qrForm.get('encryption')?.value !== 'nopass'">
+          @if (qrForm.get('encryption')?.value !== 'nopass') {
+          <div class="form-group">
             <label for="password">Password:</label>
             <input type="password" id="password" formControlName="password" placeholder="WiFi Password">
-            <div class="error" *ngIf="isFieldInvalid('password')">Please enter a password</div>
+            @if (isFieldInvalid('password')) {
+            <div class="error">Please enter a password</div>
+            }
           </div>
+          }
           <div class="form-group">
             <label class="checkbox-label">
               <input type="checkbox" formControlName="hidden">
               Hidden Network
             </label>
           </div>
-        </ng-container>
+        }
 
-        <ng-container *ngIf="qrForm.get('qrType')?.value === 'vcard'">
+        @if (qrForm.get('qrType')?.value === 'vcard') {
           <div class="form-group">
             <label for="firstName">First Name:</label>
             <input type="text" id="firstName" formControlName="firstName" placeholder="First Name">
-            <div class="error" *ngIf="isFieldInvalid('firstName')">Please enter a first name</div>
+            @if (isFieldInvalid('firstName')) {
+            <div class="error">Please enter a first name</div>
+            }
           </div>
           <div class="form-group">
             <label for="lastName">Last Name:</label>
             <input type="text" id="lastName" formControlName="lastName" placeholder="Last Name">
-            <div class="error" *ngIf="isFieldInvalid('lastName')">Please enter a last name</div>
+            @if (isFieldInvalid('lastName')) {
+            <div class="error">Please enter a last name</div>
+            }
           </div>
           <div class="form-group">
             <label for="contactEmail">Email:</label>
@@ -146,7 +166,7 @@
             <label for="address">Address (optional):</label>
             <input type="text" id="address" formControlName="address" placeholder="Street Address">
           </div>
-        </ng-container>
+        }
 
         </div>
 
@@ -158,14 +178,15 @@
             <div class="color-presets">
               <label>Quick Color Presets:</label>
               <div class="preset-grid">
+                @for (preset of colorPresets; track preset.name) {
                 <button type="button" 
-                        *ngFor="let preset of colorPresets" 
                         class="preset-btn"
                         [style.background]="'linear-gradient(45deg, ' + preset.dark + ', ' + preset.light + ')'"
                         (click)="applyColorPreset(preset)"
                         [title]="preset.name">
                   {{ preset.name }}
                 </button>
+                }
               </div>
             </div>
 
@@ -199,7 +220,8 @@
               </label>
             </div>
 
-            <div class="color-controls" *ngIf="qrForm.get('gradientEnabled')?.value">
+            @if (qrForm.get('gradientEnabled')?.value) {
+ <div class="color-controls">
               <div class="form-group">
                 <label for="gradFrom">Gradient From:</label>
                 <div class="color-input-wrapper">
@@ -227,6 +249,7 @@
                 </div>
               </div>
             </div>
+            }
 
             <div class="logo-section">
               <h4>🖼️ Add Logo or Image</h4>
@@ -243,26 +266,35 @@
               </div>
 
               <div class="logo-upload-area" [class.has-logo]="logoFile !== null">
-                <div class="logo-preview" *ngIf="logoURL">
+                @if (logoURL) {
+ <div class="logo-preview">
                   <img [src]="logoURL" alt="Logo preview">
                   <button type="button" class="remove-logo-btn" (click)="clearLogo()">✖</button>
                 </div>
+                }
                 
-                <div class="logo-controls" *ngIf="!logoURL">
+                @if (!logoURL) {
+ <div class="logo-controls">
                   <label for="logoUpload" class="upload-btn">
                     Select Logo
                     <input type="file" id="logoUpload" accept="image/*" (change)="onLogoSelected($event)" class="visually-hidden">
                   </label>
                 </div>
+                }
               </div>
+              @if (logoNotice) {
+              <p class="logo-notice" role="alert" aria-live="polite">{{ logoNotice }}</p>
+              }
               
-              <div class="form-group" *ngIf="logoFile">
+              @if (logoFile) {
+              <div class="form-group">
                 <label for="logoSize">Logo Size:</label>
                 <div class="range-wrapper">
                   <input type="range" id="logoSize" formControlName="logoSize" min="30" max="120" step="5" class="range-slider">
                   <span class="range-value">{{ qrForm.get('logoSize')?.value }}px</span>
                 </div>
               </div>
+              }
             </div>
           </div>
         </div>
@@ -304,8 +336,11 @@
 
         <div class="generate-section">
           <button type="submit" [disabled]="qrForm.invalid || isGenerating" class="generate-btn">
-            <span *ngIf="!isGenerating">✨ Generate QR Code</span>
-            <span *ngIf="isGenerating" class="loading">🔄 Generating...</span>
+            @if (!isGenerating) {
+            <span>✨ Generate QR Code</span>
+            } @else {
+            <span class="loading">🔄 Generating...</span>
+            }
           </button>
         </div>
       </form>
@@ -313,7 +348,8 @@
 
     <!-- Enhanced Preview Panel -->
     <div class="preview-panel">
-      <div class="qr-display" *ngIf="qrDataString">
+      @if (qrDataString) {
+      <div class="qr-display">
         <div class="preview-header">
           <h3>🎯 Your QR Code</h3>
           <div class="qr-stats">
@@ -342,30 +378,58 @@
         </div>
         
         <div class="download-section">
-          <h4>💾 Download Options</h4>
+          <h4>💾 Export &amp; Share</h4>
           <div class="download-actions">
             <button (click)="downloadQRCode('png')" class="download-btn png-btn" aria-label="Download PNG">
-              📸 PNG Image
+              📸 PNG
             </button>
             <button (click)="downloadQRCode('svg')" class="download-btn svg-btn" aria-label="Download SVG">
-              🎨 SVG Vector
+              🎨 SVG
             </button>
-            <button (click)="copyQrData()" class="download-btn" aria-label="Copy QR content">
+            <button (click)="copyQrImage()" class="download-btn" aria-label="Copy QR image to clipboard">
+              🖼️ Copy Image
+            </button>
+            <button (click)="printQr()" class="download-btn print-btn" aria-label="Print QR code">
+              🖨️ Print
+            </button>
+            <button (click)="shareQr()" class="download-btn share-btn" aria-label="Share QR code">
+              📤 Share
+            </button>
+          </div>
+          <div class="download-actions secondary-actions">
+            <button (click)="copyQrData()" class="download-btn copy-btn" aria-label="Copy QR content text">
               📋 Copy Content
             </button>
           </div>
-          <div class="info-text" *ngIf="copyNotice" aria-live="polite" style="margin-top:0.75rem;">
+          @if (copyNotice) {
+          <div class="info-text" aria-live="polite" style="margin-top:0.75rem;">
             {{ copyNotice }}
+          </div>
+          }
+
+          <div class="qr-capacity-meter">
+            <div class="capacity-label">
+              <span>Data: {{ qrDataLength }} chars</span>
+              <span>Max ~{{ qrMaxCapacity }}</span>
+            </div>
+            <div class="capacity-bar">
+              <div class="capacity-fill" [style.width.%]="(qrDataLength / qrMaxCapacity) * 100"
+                   [class.warning]="qrDataLength > qrMaxCapacity * 0.7"
+                   [class.danger]="qrDataLength > qrMaxCapacity * 0.9"></div>
+            </div>
           </div>
         </div>
       </div>
+      }
       
       <!-- Empty State -->
-      <div class="empty-preview" *ngIf="!qrDataString">
+      @if (!qrDataString) {
+      <div class="empty-preview">
         <div class="empty-icon">📱</div>
         <h3>Ready to Generate</h3>
         <p>Fill in the content details and click "Generate QR Code" to see your customized QR code here.</p>
       </div>
+    }
     </div>
   </div>
 </div>

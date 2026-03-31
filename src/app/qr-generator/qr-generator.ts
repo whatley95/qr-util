@@ -1,5 +1,4 @@
 import { Component, OnInit, ViewChild } from '@angular/core';
-import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
 // Fix import path
 import { QrCodeService } from './../services/qr-code.service';
@@ -10,7 +9,7 @@ import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
 @Component({
   selector: 'app-qr-generator',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, QrWithLogoComponent],
+  imports: [ReactiveFormsModule, QrWithLogoComponent],
   templateUrl: './qr-generator.html',
   styleUrl: './qr-generator.scss'
 })
@@ -28,6 +27,9 @@ export class QrGenerator implements OnInit {
   
   // Inline copy notice
   copyNotice: string | null = null;
+  
+  // Inline logo/validation notice
+  logoNotice: string | null = null;
   
   // Color presets for quick selection
   colorPresets = [
@@ -193,13 +195,15 @@ export class QrGenerator implements OnInit {
       
       // Check if file is an image
       if (!file.type.startsWith('image/')) {
-        alert('Please select an image file');
+        this.logoNotice = 'Please select an image file.';
+        setTimeout(() => this.logoNotice = null, 4000);
         return;
       }
       
       // Check image size - if too large, notify
       if (file.size > 500000) { // 500KB
-        alert('For best results, use an image smaller than 500KB.');
+        this.logoNotice = 'For best results, use an image smaller than 500KB.';
+        setTimeout(() => this.logoNotice = null, 4000);
       }
       
       this.logoFile = file;
@@ -294,7 +298,8 @@ export class QrGenerator implements OnInit {
     const assessment = this.qrWithLogoComponent.assessLogoImpact();
     
     if (!assessment.readable) {
-      alert(`Warning: ${assessment.recommendations}`);
+      this.logoNotice = `Warning: ${assessment.recommendations}`;
+      setTimeout(() => this.logoNotice = null, 6000);
       
       // Automatically adjust settings for better readability
       const formValue = this.qrForm.value;
@@ -392,16 +397,13 @@ export class QrGenerator implements OnInit {
   }
 
   async downloadQRCode(fileType: 'png' | 'svg'): Promise<void> {
-    // First check QR code readability if using logo
     this.checkQrReadability();
-    
-    // Get form values (after potential adjustments from readability check)
+
     const formValue = this.qrForm.value;
     const includeLogo = formValue.addLogo === true && this.logoURL !== null;
-    const logoSize = includeLogo ? formValue.logoSize : 60; // Default to 60px if not specified
+    const logoSize = includeLogo ? formValue.logoSize : 60;
     const fileName = this.getFileBase();
-    
-    // ALWAYS ensure error correction is set to high when using a logo
+
     if (includeLogo) {
       this.qrForm.get('errorCorrection')?.setValue('H');
       const qrSize = formValue.size || 200;
@@ -410,64 +412,39 @@ export class QrGenerator implements OnInit {
         this.qrForm.get('logoSize')?.setValue(maxLogoSize);
       }
     }
-    
-    // If we're using a logo, make sure it's rendered completely before downloading
+
     if (includeLogo && this.qrWithLogoComponent) {
-      try {
-        await this.qrWithLogoComponent.refreshLogoRendering();
-      } catch (e) {
-        console.error('Error refreshing logo rendering:', e);
-      }
+      try { await this.qrWithLogoComponent.refreshLogoRendering(); } catch { /* ignore */ }
     }
-    
+
     if (fileType === 'png') {
-      let canvas: HTMLCanvasElement | null = null;
-      
-      if (includeLogo && this.qrWithLogoComponent) {
-        canvas = this.qrWithLogoComponent.canvasRef?.nativeElement;
-      }
-      
-      if (!canvas) {
-        if (includeLogo) {
-          canvas = document.querySelector('app-qr-with-logo .qr-canvas') as HTMLCanvasElement;
-        } else {
-          canvas = document.querySelector('app-qr-with-logo .qr-element canvas') as HTMLCanvasElement;
-        }
-      }
-      
-      if (canvas) {
-        try {
-          const link = document.createElement('a');
-          link.download = `${fileName}.png`;
-          link.href = canvas.toDataURL('image/png');
-          link.click();
-          return;
-        } catch (e) {
-          console.error('Error generating PNG:', e);
-          alert('Could not download QR code. Please try again.');
-        }
+      try {
+        const canvas = await this.getExportCanvas();
+        const link = document.createElement('a');
+        link.download = `${fileName}.png`;
+        link.href = canvas.toDataURL('image/png');
+        link.click();
+      } catch (e) {
+        console.error('Error generating PNG:', e);
+        this.logoNotice = 'Could not download QR code. Please try again.';
+        setTimeout(() => this.logoNotice = null, 4000);
       }
     } else if (fileType === 'svg') {
       let svgElement: SVGElement | null = null;
-      
-      if (this.qrWithLogoComponent && this.qrWithLogoComponent.qrcodeComponent) {
-        const qrElement = this.qrWithLogoComponent.qrcodeComponent.qrcElement?.nativeElement;
-        if (qrElement) {
-          svgElement = qrElement.querySelector('svg');
-        }
+
+      if (this.qrWithLogoComponent?.qrcodeComponent?.qrcElement?.nativeElement) {
+        svgElement = this.qrWithLogoComponent.qrcodeComponent.qrcElement.nativeElement.querySelector('svg');
       }
-      
       if (!svgElement) {
         svgElement = document.querySelector('app-qr-with-logo .qr-element svg') as SVGElement;
       }
-      
+
       if (svgElement) {
         try {
           const clonedSvg = svgElement.cloneNode(true) as SVGElement;
-          
           clonedSvg.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
           clonedSvg.setAttribute('version', '1.1');
-          
+
           if (includeLogo && this.logoURL) {
             const width = parseFloat(clonedSvg.getAttribute('width') || '200');
             const height = parseFloat(clonedSvg.getAttribute('height') || '200');
@@ -476,19 +453,19 @@ export class QrGenerator implements OnInit {
             const finalLogoSize = Math.min(calculatedLogoSize, qrSize * 0.2);
             const logoX = (width - finalLogoSize) / 2;
             const logoY = (height - finalLogoSize) / 2;
-            
+
             const ns = "http://www.w3.org/2000/svg";
             const group = document.createElementNS(ns, "g");
-            
+
             const circle = document.createElementNS(ns, "circle");
             const padding = Math.max(10, finalLogoSize * 0.15);
-            circle.setAttribute("cx", (width/2).toString());
-            circle.setAttribute("cy", (height/2).toString());
-            circle.setAttribute("r", ((finalLogoSize/2) + padding).toString());
+            circle.setAttribute("cx", (width / 2).toString());
+            circle.setAttribute("cy", (height / 2).toString());
+            circle.setAttribute("r", ((finalLogoSize / 2) + padding).toString());
             circle.setAttribute("fill", "white");
             circle.setAttribute("stroke", "white");
             circle.setAttribute("stroke-width", "4");
-            
+
             const image = document.createElementNS(ns, "image");
             image.setAttribute("x", logoX.toString());
             image.setAttribute("y", logoY.toString());
@@ -496,55 +473,45 @@ export class QrGenerator implements OnInit {
             image.setAttribute("height", finalLogoSize.toString());
             image.setAttribute("href", this.logoURL);
             image.setAttribute("preserveAspectRatio", "xMidYMid meet");
-            
+
             const clipPath = document.createElementNS(ns, "clipPath");
             const clipId = "logo-clip-" + Date.now();
             clipPath.setAttribute("id", clipId);
-            
+
             const clipCircle = document.createElementNS(ns, "circle");
-            clipCircle.setAttribute("cx", (width/2).toString());
-            clipCircle.setAttribute("cy", (height/2).toString());
-            clipCircle.setAttribute("r", (finalLogoSize/2).toString());
-            
+            clipCircle.setAttribute("cx", (width / 2).toString());
+            clipCircle.setAttribute("cy", (height / 2).toString());
+            clipCircle.setAttribute("r", (finalLogoSize / 2).toString());
+
             clipPath.appendChild(clipCircle);
             clonedSvg.appendChild(clipPath);
-            
+
             image.setAttribute("clip-path", `url(#${clipId})`);
-            
+
             group.appendChild(circle);
             group.appendChild(image);
             clonedSvg.appendChild(group);
           }
-          
+
           const svgData = new XMLSerializer().serializeToString(clonedSvg);
-          const svgBlob = new Blob([svgData], {type: "image/svg+xml"});
+          const svgBlob = new Blob([svgData], { type: "image/svg+xml" });
           const url = URL.createObjectURL(svgBlob);
-          
+
           const link = document.createElement('a');
           link.href = url;
           link.download = `${fileName}.svg`;
           link.click();
-          
+
           setTimeout(() => URL.revokeObjectURL(url), 100);
-          return;
         } catch (e) {
           console.error('Error generating SVG:', e);
+          this.logoNotice = 'Could not download SVG. Please try again.';
+          setTimeout(() => this.logoNotice = null, 4000);
         }
       }
     }
-    
-    // Fall back
-    this.qrCodeService.downloadQRCode(
-      fileType,
-      this.getFileBase(),
-      document.querySelector('app-qr-with-logo .qr-element'),
-      this.logoURL,
-      includeLogo,
-      logoSize
-    );
   }
 
-  // Method to apply a color preset
   applyColorPreset(preset: any): void {
     this.qrForm.patchValue({
       colorDark: preset.dark,
@@ -552,15 +519,85 @@ export class QrGenerator implements OnInit {
     });
   }
 
-  // Copy the current content string
   async copyQrData(): Promise<void> {
     try {
       await navigator.clipboard.writeText(this.qrDataString || '');
-      this.copyNotice = 'Copied';
+      this.copyNotice = 'Copied to clipboard!';
       setTimeout(() => (this.copyNotice = null), 2000);
     } catch {
       // no-op
     }
+  }
+
+  async copyQrImage(): Promise<void> {
+    try {
+      const canvas = await this.getExportCanvas();
+      const blob = await new Promise<Blob | null>(resolve => canvas.toBlob(resolve, 'image/png'));
+      if (blob) {
+        await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
+        this.copyNotice = 'Image copied to clipboard!';
+      }
+    } catch {
+      this.copyNotice = 'Could not copy image. Try downloading instead.';
+    }
+    setTimeout(() => (this.copyNotice = null), 3000);
+  }
+
+  async shareQr(): Promise<void> {
+    try {
+      const canvas = await this.getExportCanvas();
+      const blob = await new Promise<Blob | null>(resolve => canvas.toBlob(resolve, 'image/png'));
+      if (!blob) return;
+      const file = new File([blob], `${this.getFileBase()}.png`, { type: 'image/png' });
+      if (navigator.share && navigator.canShare?.({ files: [file] })) {
+        await navigator.share({ title: 'QR Code', text: this.qrDataString, files: [file] });
+      } else if (navigator.share) {
+        await navigator.share({ title: 'QR Code', text: this.qrDataString });
+      } else {
+        this.copyNotice = 'Sharing not supported on this browser.';
+        setTimeout(() => (this.copyNotice = null), 3000);
+      }
+    } catch (e: any) {
+      if (e?.name !== 'AbortError') {
+        this.copyNotice = 'Could not share.';
+        setTimeout(() => (this.copyNotice = null), 3000);
+      }
+    }
+  }
+
+  async printQr(): Promise<void> {
+    try {
+      const canvas = await this.getExportCanvas();
+      const dataUrl = canvas.toDataURL('image/png');
+      const w = window.open('', '_blank');
+      if (!w) return;
+      w.document.write(`<!DOCTYPE html>
+        <html><head><title>Print QR Code</title>
+        <style>body{display:flex;justify-content:center;align-items:center;min-height:100vh;margin:0;}
+        img{max-width:80vmin;max-height:80vmin;}</style></head>
+        <body><img src="${dataUrl}" onload="window.print();window.close();"></body></html>`);
+      w.document.close();
+    } catch {
+      this.logoNotice = 'Could not prepare QR for printing.';
+      setTimeout(() => this.logoNotice = null, 3000);
+    }
+  }
+
+  get qrDataLength(): number {
+    return (this.qrDataString || '').length;
+  }
+
+  get qrMaxCapacity(): number {
+    const ec = this.qrForm?.get('errorCorrection')?.value || 'M';
+    const caps: Record<string, number> = { L: 4296, M: 3391, Q: 2420, H: 1852 };
+    return caps[ec] || 3391;
+  }
+
+  private getExportCanvas(): Promise<HTMLCanvasElement> {
+    if (!this.qrWithLogoComponent) {
+      return Promise.reject(new Error('QR component not ready'));
+    }
+    return this.qrWithLogoComponent.getExportCanvas();
   }
 
   isFieldInvalid(fieldName: string): boolean {

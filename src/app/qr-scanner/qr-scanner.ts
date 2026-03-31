@@ -1,5 +1,4 @@
 import { Component, ElementRef, OnDestroy, ViewChild, AfterViewInit } from '@angular/core';
-import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import jsQR from 'jsqr';
 import { BrowserMultiFormatReader } from '@zxing/browser';
@@ -7,7 +6,7 @@ import { BrowserMultiFormatReader } from '@zxing/browser';
 @Component({
   selector: 'app-qr-scanner',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [FormsModule],
   templateUrl: './qr-scanner.html',
   styleUrl: './qr-scanner.scss'
 })
@@ -69,7 +68,7 @@ export class QrScanner implements AfterViewInit, OnDestroy {
     this.scanOption = this.isMobileDevice ? 'camera' : 'file';
     
     // Add resize listener to handle orientation changes or window resizing
-    window.addEventListener('resize', () => {
+    this.resizeListener = () => {
       const wasMobile = this.isMobileDevice;
       this.isMobileDevice = mobileKeywords.some(keyword => userAgent.includes(keyword)) || window.innerWidth <= 991;
       
@@ -77,13 +76,19 @@ export class QrScanner implements AfterViewInit, OnDestroy {
       if (wasMobile && !this.isMobileDevice) {
         this.scanOption = 'file';
       }
-    });
+    };
+    window.addEventListener('resize', this.resizeListener);
   }
   
+  private resizeListener?: () => void;
+
   ngOnDestroy(): void {
     this.stopCamera();
     if (this.previewImageUrl) {
       URL.revokeObjectURL(this.previewImageUrl);
+    }
+    if (this.resizeListener) {
+      window.removeEventListener('resize', this.resizeListener);
     }
   }
   
@@ -522,7 +527,14 @@ export class QrScanner implements AfterViewInit, OnDestroy {
 
   openResult(): void {
     if (this.scanResultType === 'URL' && this.scanResult) {
-      window.open(this.scanResult, '_blank');
+      try {
+        const parsed = new URL(this.scanResult);
+        if (parsed.protocol === 'http:' || parsed.protocol === 'https:') {
+          window.open(parsed.href, '_blank', 'noopener,noreferrer');
+        }
+      } catch {
+        // Invalid URL — do not open
+      }
     }
   }
 
@@ -581,7 +593,7 @@ export class QrScanner implements AfterViewInit, OnDestroy {
   }
   
   getEmailBody(): string {
-    if (this.scanResult && this.scanResult.includes('?body=') || this.scanResult?.includes('&body=')) {
+    if (this.scanResult && (this.scanResult.includes('?body=') || this.scanResult.includes('&body='))) {
       const bodyParam = this.scanResult.includes('?body=') ? '?body=' : '&body=';
       const start = this.scanResult.indexOf(bodyParam) + bodyParam.length;
       return decodeURIComponent(this.scanResult.substring(start));

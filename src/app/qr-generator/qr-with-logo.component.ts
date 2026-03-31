@@ -1,11 +1,10 @@
 import { Component, Input, OnChanges, SimpleChanges, ElementRef, ViewChild, AfterViewInit } from '@angular/core';
-import { CommonModule } from '@angular/common';
 import { QRCodeComponent } from 'angularx-qrcode';
 
 @Component({
   selector: 'app-qr-with-logo',
   standalone: true,
-  imports: [CommonModule, QRCodeComponent],
+  imports: [QRCodeComponent],
   template: `
     <div class="qr-with-logo-container" [style.width.px]="size" [style.height.px]="size">
       <!-- Standard QR Code as base -->
@@ -292,6 +291,51 @@ export class QrWithLogoComponent implements OnChanges, AfterViewInit {
     });
   }
   
+  /**
+   * Returns a canvas suitable for PNG export / print / clipboard.
+   * If a logo canvas is already rendered and visible, returns it directly.
+   * Otherwise converts the SVG to a temporary canvas.
+   */
+  public getExportCanvas(): Promise<HTMLCanvasElement> {
+    return new Promise((resolve, reject) => {
+      // If logo overlay canvas is active, return it
+      if (this.showLogo && this.logoUrl && this.canvasRef?.nativeElement) {
+        const c = this.canvasRef.nativeElement;
+        if (c.width > 0 && c.height > 0) {
+          resolve(c);
+          return;
+        }
+      }
+
+      // Convert the SVG to a canvas
+      const svg = this.getSvgElement();
+      if (!svg) {
+        reject(new Error('No QR SVG element found'));
+        return;
+      }
+
+      const svgData = new XMLSerializer().serializeToString(svg);
+      const svgBlob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' });
+      const url = URL.createObjectURL(svgBlob);
+
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        canvas.width = this.size;
+        canvas.height = this.size;
+        const ctx = canvas.getContext('2d')!;
+        ctx.drawImage(img, 0, 0, this.size, this.size);
+        URL.revokeObjectURL(url);
+        resolve(canvas);
+      };
+      img.onerror = () => {
+        URL.revokeObjectURL(url);
+        reject(new Error('Failed to render SVG to canvas'));
+      };
+      img.src = url;
+    });
+  }
+
   /**
    * Evaluates whether the current logo size is likely to make the QR code readable
    * @returns An assessment of QR code readability with current logo
